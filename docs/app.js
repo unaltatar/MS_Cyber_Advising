@@ -74,7 +74,11 @@ function seatCell(program, s) {
 function seatNote(program, s) {
   const seat = A.seatsFor(program, s);
   const parts = [];
-  for (const p of seat.mine) parts.push(`${p.seats} reserved for ${fmtGroup(p.group)}`);
+  if (seat.mine.length > 1) {
+    parts.push(`Reserved for your concentration: ${seat.mine.map((p) => `${fmtGroup(p.group)} ${p.seats}`).join(", ")} (smaller one counted)`);
+  } else {
+    for (const p of seat.mine) parts.push(`${p.seats} reserved for ${fmtGroup(p.group)}`);
+  }
   const other = seat.others.reduce((n, p) => n + p.seats, 0);
   if (other) parts.push(`${other} reserved for other groups`);
   if (seat.forYou === null) parts.push(s.special_restriction);
@@ -241,19 +245,27 @@ function summary(program, ev) {
       ev.gpa !== null && ev.gpa < 3 ? "tile-warn" : ""));
 }
 
+function leftoverNote(items, text) {
+  if (!items.length) return null;
+  return h("p", { class: "hint" }, text, items.map((u) => u.course.originalCode || u.course.code).join(", "), ".");
+}
+
 function coursesRead(courses, ev) {
   const appliedTo = new Map();
   for (const r of ev.requirements) for (const c of r.applied) appliedTo.set(c, r.label);
   const blockers = new Map([...ev.blocked].map(([target, by]) => [by, target]));
   const counted = new Set(ev.attempts);
+  const leftover = new Map(ev.unapplied.map((u) => [u.course, u.extra]));
   const howItCounts = (c) => {
-    if (appliedTo.has(c)) return `${c.status === "in_progress" ? "In progress toward" : "Counts toward"} ${appliedTo.get(c)}`;
+    const alias = c.originalCode ? ` (as ${c.code})` : "";
+    if (appliedTo.has(c)) return `${c.status === "in_progress" ? "In progress toward" : "Counts toward"} ${appliedTo.get(c)}${alias}`;
     if (blockers.has(c)) return `Rules out ${blockers.get(c)}`;
     if (!c.graduate) return "Undergraduate";
     if (c.status === "no_credit") return `No graduate credit (${c.grade})`;
     if (c.status === "unknown") return "Grade not recognized";
     if (!counted.has(c)) return "Replaced by another attempt";
-    return "Not used by this program";
+    if (leftover.get(c)) return `Extra credit: the requirements it could fill are already full${alias}`;
+    return "Does not count toward this concentration";
   };
   const terms = [...new Set(courses.map((c) => c.term))].sort((a, b) => A.termKey(b) - A.termKey(a));
   const rows = [];
@@ -261,7 +273,7 @@ function coursesRead(courses, ev) {
     for (const c of courses.filter((x) => x.term === t)) {
       rows.push(h("tr", { class: c.graduate ? "" : "undergrad" },
         h("td", { class: "nowrap" }, c.term || "-"),
-        h("td", { class: "nowrap" }, c.code + c.suffix),
+        h("td", { class: "nowrap" }, (c.originalCode || c.code) + c.suffix),
         h("td", null, c.title),
         h("td", null, c.credits),
         h("td", null, c.status === "in_progress" ? "Enrolled" : c.grade || "-"),
@@ -339,7 +351,7 @@ function render() {
   const text = $("#history").value;
 
   if (text.trim()) {
-    const courses = A.parseTranscript(text);
+    const courses = A.applyAliases(A.parseTranscript(text), cfg.aliases);
     if (!courses.length) {
       out.append(h("section", { class: "panel" }, h("p", { class: "banner banner-warn" },
         "No courses were recognized in the pasted text. Paste lines that include the course code, for example ",
@@ -351,8 +363,10 @@ function render() {
         summary(program, ev),
         ev.warnings.length ? h("ul", { class: "warnings" }, ev.warnings.map((w) => h("li", null, w.text))) : null,
         h("div", { class: "reqs" }, ev.requirements.map((r) => requirementCard(r, ev))),
-        ev.unapplied.length ? h("p", { class: "hint" }, "Graduate courses not used by this concentration: ",
-          ev.unapplied.map((c) => c.code).join(", "), ".") : null));
+        leftoverNote(ev.unapplied.filter((u) => u.extra),
+          "Extra graduate credits, beyond what the requirements they could fill need: "),
+        leftoverNote(ev.unapplied.filter((u) => !u.extra),
+          "Graduate courses that do not count toward this concentration: ")));
       out.append(recommendations(program, ev, term, prefs));
       out.append(coursesRead(courses, ev));
     }

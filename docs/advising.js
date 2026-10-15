@@ -114,6 +114,17 @@ export function parseTranscript(text) {
   return courses;
 }
 
+// Rewrite older or cross-listed codes ("RPAD 549") to the code the rules use ("CYBR 549").
+// The original code is kept for display.
+export function applyAliases(courses, aliases) {
+  return courses.map((c) => {
+    const to = (aliases || {})[c.code];
+    if (!to) return c;
+    const [subject, number] = to.split(" ");
+    return { ...c, code: to, subject, number, graduate: isGraduate(number), originalCode: c.code };
+  });
+}
+
 function rank(c) {
   if (c.status === "completed") return 2 + (GRADE_POINTS[c.grade] ?? 3.0) / 10;
   if (c.status === "in_progress") return 1;
@@ -275,7 +286,12 @@ export function evaluate(program, courses, { exclusions = {}, repeatable = [] } 
     }
   }
 
-  const unapplied = pool.filter((p) => !p.used).map((p) => p.course);
+  // Left-over graduate courses: "extra" if some requirement would take them but is already full.
+  const unapplied = pool.filter((p) => !p.used).map((p) => ({
+    course: p.course,
+    extra: program.requirements.some((req) =>
+      req.type === "all" ? req.slots.some((s) => s.includes(p.course.code)) : accepts(req, p.course.code)),
+  }));
   const sum = (key) => requirements.reduce((s, r) => s + r[key], 0);
   return {
     requirements, attempts, blocked, warnings, unapplied, gpa, gpaCredits,
@@ -308,7 +324,10 @@ export function programLabel(program, code) {
   return null;
 }
 
-// Seats this student can actually take: open seats plus any pool reserved for their program.
+// Seats this student can take: open seats plus seats reserved for their concentration.
+// A concentration can appear under two group codes (plan code and concentration name).
+// Until it is confirmed whether a student belongs to one or both, count only the
+// smaller of those pools, so the number is never overstated.
 export function seatsFor(program, section) {
   const total = section.seats_remaining;
   const { pools, open, parsed } = section.seats;
@@ -317,8 +336,9 @@ export function seatsFor(program, section) {
   const groups = new Set(program.seat_groups);
   const mine = pools.filter((p) => groups.has(p.group));
   const others = pools.filter((p) => !groups.has(p.group));
-  const forYou = Math.max(0, Math.min(total, (open || 0) + mine.reduce((s, p) => s + p.seats, 0)));
-  return { forYou, total, mine, others, open: open || 0 };
+  const reserved = mine.length ? Math.min(...mine.map((p) => p.seats)) : 0;
+  const forYou = Math.max(0, Math.min(total, (open || 0) + reserved));
+  return { forYou, total, mine, others, open: open || 0, reserved };
 }
 
 // prefs: { modality: "online" | "in_person" | "any", days: Set<string> | null, earliest: "HH:MM" | "" }

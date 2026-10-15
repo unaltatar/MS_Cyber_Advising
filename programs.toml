@@ -15,6 +15,15 @@
 # Courses that count every time they are taken (different modules or topics).
 repeatable = ["CINF 523", "CYBR 699", "CYBR 678", "HHPM 669"]
 
+# Older or cross-listed codes on a transcript that count as the course on the right.
+# The program map notes "CYBR/RPAD 549 (still CEHC 549)" and "CYBR/RPAD 569";
+# BFOR 602 Cyberlaw & Ethics is now offered as BCYB 602.
+[aliases]
+"CEHC 549" = "CYBR 549"
+"RPAD 549" = "CYBR 549"
+"RPAD 569" = "CYBR 569"
+"BFOR 602" = "BCYB 602"
+
 # Graduate courses that cannot be taken once the student has credit for one of
 # the listed courses (usually the 400-level undergraduate version). Seeded from
 # the October 2026 course descriptions and the program sheets. The build adds
@@ -95,8 +104,7 @@ seat_groups = ["DFC-MS-RISKPCC students", "Cyber Risk Mgmt & Cmpl MS conc"]
   type = "choose"
   credits = 9
   any_graduate = ["CYBR"]
-  # BFOR 602 Cyberlaw & Ethics is now offered as BCYB 602.
-  courses = ["BCYB 644", "BCYB 602", "BFOR 602", "BFOR 650"]
+  courses = ["BCYB 644", "BCYB 602", "BFOR 650"]
   receives_waived_credits = true
   note = "Any other CYBR graduate course. CYBR 678 or CYBR 699 can count here with advisement."
 

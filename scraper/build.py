@@ -54,6 +54,12 @@ def load_programs(path):
         _check_code(code, "exclusions")
         for b in blockers:
             _check_code(b, f"exclusions[{code}]")
+    aliases = cfg.get("aliases", {})
+    for old, new in aliases.items():
+        _check_code(old, "aliases")
+        _check_code(new, f"aliases[{old}]")
+        if new in aliases:
+            raise ConfigError(f"aliases: {old!r} points to {new!r}, which is itself an alias")
 
     programs = cfg.get("programs", [])
     if not programs:
