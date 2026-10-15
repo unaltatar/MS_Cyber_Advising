@@ -217,6 +217,22 @@ test("left-over courses: extra when a full requirement would take them, otherwis
   assert.deepEqual(left, { "CYBR 552": true, "HHPM 525": false });
 });
 
+test("CYBR 578 and CYBR 627 count only as electives, never toward thesis or internship", () => {
+  const history = "Fall 2025\n3 CYBR578|PFC Internship in Cybersecurity  A\n3 CYBR627|SEM Cybersecurity Practicum  A";
+  const ev = A.evaluate(RISK, A.parseTranscript(history), OPTS);
+  const cap = ev.requirements.find((r) => r.id === "capstone");
+  const elect = ev.requirements.find((r) => r.id === "electives");
+  assert.equal(cap.remaining, 3);
+  assert.deepEqual(elect.applied.map((c) => c.code).sort(), ["CYBR 578", "CYBR 627"]);
+  assert.equal(A.sectionFit(RISK, ev, section({ code: "CYBR 678" })).label, "Internship");
+
+  // Electives full and the capstone still open: CYBR 578 is not needed, CYBR 678 is.
+  const full = A.evaluate(RISK, A.parseTranscript(
+    "Fall 2025\n3 CYBR540|LEC Course 540  A\n3 CYBR550|LEC Course 550  A\n3 CYBR569|LEC Course 569  A"), OPTS);
+  assert.equal(A.sectionFit(RISK, full, section({ code: "CYBR 578" })).reason, "not_needed");
+  assert.equal(A.sectionFit(RISK, full, section({ code: "CYBR 678" })).label, "Internship");
+});
+
 test("terms sort chronologically", () => {
   const labels = ["Summer 2026", "Spring 2027", "Fall 2026", "Winter 2027"];
   assert.deepEqual(labels.sort((a, b) => A.termKey(b) - A.termKey(a)), ["Spring 2027", "Winter 2027", "Fall 2026", "Summer 2026"]);

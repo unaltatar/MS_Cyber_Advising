@@ -60,6 +60,10 @@ Always name the Node test file. The CI runner's Node treats `node --test tests/`
 - Sections whose description says "Graduate Business Students Only" are hidden. Courses with no open section are dropped from "choose from" lists.
 - A concentration's old code (DFC-MS-RISKPCC) and new name (Cyber Risk Mgmt & Cmpl MS conc) are one program, so their seat pools are added. The Health pair works the same way.
 - CYBR 555 is a Tools course.
+- Only CYBR 678 and CYBR 699 fill Thesis or Internship.
+  - CYBR 578 (an internship with no credit minimum) and CYBR 627 count only as electives.
+  - Per-course notes live in `settings.course_notes`.
+  - Supervised courses are shown as one row per course. That changes only the display, never which requirement a course fills.
 - CINF 523 is three 1-credit modules and is repeatable. If the student already has a module, the page reminds them to check that the new topic is different.
 - Old CEHC and RPAD codes are retired, so there are no code aliases.
 

@@ -112,6 +112,15 @@ class BuildTests(unittest.TestCase):
         cfg = build.load_programs(pathlib.Path(__file__).parent.parent / "programs.toml")
         self.assertEqual({p["id"] for p in cfg["programs"]}, {"risk", "health"})
 
+    def test_only_678_and_699_fill_thesis_or_internship(self):
+        # Advising rule: CYBR 578 (internship, no credit minimum) and CYBR 627 are electives only.
+        cfg = build.load_programs(pathlib.Path(__file__).parent.parent / "programs.toml")
+        for p in cfg["programs"]:
+            capstone = next(r for r in p["requirements"] if r["label"] == "Thesis or Internship")
+            self.assertEqual(sorted(capstone["courses"]), ["CYBR 678", "CYBR 699"], p["id"])
+            electives = next(r for r in p["requirements"] if r["label"] == "Elective")
+            self.assertIn("CYBR", electives["any_graduate"], p["id"])
+
     def test_credit_total_mismatch_is_rejected(self):
         bad = """
 [[programs]]

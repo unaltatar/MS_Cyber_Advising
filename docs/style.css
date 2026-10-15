@@ -209,6 +209,7 @@ table.sections { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 .nowrap { white-space: nowrap; }
 .topic { color: var(--accent); font-weight: 600; font-size: 0.85rem; }
 .prereq { color: var(--warn); font-size: 0.8rem; }
+.course-note { color: var(--accent); font-size: 0.8rem; }
 .muted { color: var(--muted); }
 .small { font-size: 0.8rem; }
 .seats { font-weight: 700; font-variant-numeric: tabular-nums; }

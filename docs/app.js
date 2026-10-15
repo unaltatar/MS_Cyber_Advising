@@ -182,11 +182,17 @@ function repeatNote(ev, s) {
     `Already has ${before.length} ${s.code} module${before.length === 1 ? "" : "s"} (${when}). Check that this topic is different.`);
 }
 
+// Advising note for a course, from settings.course_notes in programs.toml.
+function courseNote(code) {
+  const note = (cfg.settings.course_notes || {})[code];
+  return note ? h("div", { class: "course-note" }, note) : null;
+}
+
 function sectionRow(program, ev, s, label) {
   return h("tr", null,
     h("td", null, h("span", { class: "req-label" }, label)),
     h("td", { class: "nowrap" }, h("strong", null, s.code)),
-    h("td", null, s.title, s.topic ? h("div", { class: "topic" }, s.topic) : null,
+    h("td", null, s.title, s.topic ? h("div", { class: "topic" }, s.topic) : null, courseNote(s.code),
       s.prerequisite ? h("div", { class: "prereq" }, `Prerequisite: ${s.prerequisite}`) : null,
       repeatNote(ev, s)),
     h("td", null, sessionCell(s)),
@@ -206,28 +212,27 @@ function sectionTable(rows) {
       h("tbody", null, rows)));
 }
 
-function supervisedBlock(program, groups) {
-  if (!groups.size) return null;
-  const rows = [...groups.values()].sort(byLabel).map(({ s, label, sections }) => {
-    const people = [...new Set(sections.map((x) => x.meeting.instructor).filter(Boolean))];
-    const seats = sections.map((x) => A.seatsFor(program, x).forYou ?? x.seats_remaining);
-    const lo = Math.min(...seats);
-    const hi = Math.max(...seats);
-    const seatText = hi === 0 ? "Full" : `${lo === hi ? hi : `${lo}-${hi}`} per section`;
-    return h("tr", null,
-      h("td", null, h("span", { class: "req-label" }, label)),
-      h("td", { class: "nowrap" }, h("strong", null, s.code)),
-      h("td", null, s.title, s.prerequisite ? h("div", { class: "prereq" }, `Prerequisite: ${s.prerequisite}`) : null),
-      h("td", null, `${people.length || "No"} supervisor${people.length === 1 ? "" : "s"} listed: `,
-        h("span", { class: "muted" }, people.join("; ") || "TBA")),
-      h("td", { class: hi === 0 ? "seats seats-full" : "" }, seatText));
-  });
-  return h("div", null,
-    h("h4", null, "Internship, practicum and thesis"),
-    h("p", { class: "hint" }, "Arrange these with a faculty supervisor and the advisor first. The class number depends on the supervisor."),
-    h("div", { class: "table-wrap" }, h("table", { class: "sections" },
-      h("thead", null, h("tr", null, ["Requirement", "Course", "Title", "Supervisors", "Seats"].map((t) => h("th", { scope: "col" }, t)))),
-      h("tbody", null, rows))));
+// Internships, practicum and thesis list one section per faculty supervisor, so each
+// course is one row. Which requirement it fills comes from programs.toml like any other.
+function supervisedRow(program, { s, label, sections }) {
+  const people = [...new Set(sections.map((x) => x.meeting.instructor).filter(Boolean))];
+  const seats = sections.map((x) => A.seatsFor(program, x).forYou ?? x.seats_remaining);
+  const lo = Math.min(...seats);
+  const hi = Math.max(...seats);
+  const sessions = [...new Set(sections.map((x) => (SESSIONS[x.session] || [x.session])[0]))].join(", ");
+  return h("tr", null,
+    h("td", null, h("span", { class: "req-label" }, label)),
+    h("td", { class: "nowrap" }, h("strong", null, s.code)),
+    h("td", null, s.title, courseNote(s.code),
+      s.prerequisite ? h("div", { class: "prereq" }, `Prerequisite: ${s.prerequisite}`) : null,
+      h("div", { class: "muted small" }, "One section per faculty supervisor. Arrange it with the supervisor first.")),
+    h("td", null, sessions),
+    h("td", null, fmtCredits(s)),
+    h("td", { class: "nowrap" }, sections.length === 1 ? s.class_number : `${sections.length} sections`),
+    h("td", null, "Arranged"),
+    h("td", null, "With the supervisor"),
+    h("td", null, people.join("; ") || h("span", { class: "muted" }, "TBA")),
+    h("td", { class: hi === 0 ? "seats seats-full" : "seats" }, hi === 0 ? "Full" : `${lo === hi ? hi : `${lo}-${hi}`} per section`));
 }
 
 function recommendations(program, ev, term, prefs) {
@@ -249,16 +254,16 @@ function recommendations(program, ev, term, prefs) {
       regular.push({ s, label: fit.label });
     }
   }
-  regular.sort(byLabel);
+  const entries = [...regular, ...supervised.values()].sort(byLabel);
 
   const out = [h("h3", null, `Sections in ${term.label} that count toward the remaining requirements`)];
-  if (!regular.length && !supervised.size) {
+  if (!entries.length) {
     out.push(h("p", { class: "empty" }, ev.totals.remaining === 0
       ? "The remaining requirements are covered by completed and in-progress courses."
       : `No matching sections in ${term.label}${hidden ? " with the chosen format and time limits" : ""}.`));
+  } else {
+    out.push(sectionTable(entries.map((e) => (e.sections ? supervisedRow(program, e) : sectionRow(program, ev, e.s, e.label)))));
   }
-  if (regular.length) out.push(sectionTable(regular.map(({ s, label }) => sectionRow(program, ev, s, label))));
-  out.push(supervisedBlock(program, supervised));
   if (hidden) out.push(h("p", { class: "hint" }, `${hidden} more matching section${hidden === 1 ? " is" : "s are"} hidden by the chosen format or time limits.`));
   return h("section", { class: "panel" }, out);
 }
@@ -336,7 +341,7 @@ function programTable(program, term, prefs) {
       h("td", null, h("span", { class: "req-label" }, label)),
       h("td", null, sessionCell(s)),
       h("td", null, s.subject), h("td", null, s.catalog_number),
-      h("td", null, s.title, s.topic ? h("div", { class: "topic" }, s.topic) : null),
+      h("td", null, s.title, s.topic ? h("div", { class: "topic" }, s.topic) : null, courseNote(s.code)),
       h("td", null, fmtCredits(s)),
       h("td", null, s.class_number),
       h("td", null, m.instructor),

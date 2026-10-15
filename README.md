@@ -63,6 +63,8 @@ validates every record.
   name; both pools are counted.
 - CINF 523 modules count each time. The transcript does not show the topic, so
   the page reminds the student to check that a new module is a different topic.
+- Only CYBR 678 and CYBR 699 fill the thesis or internship requirement. CYBR 578,
+  an internship with no credit minimum, and CYBR 627 count only as electives.
 
 ## Running locally
 

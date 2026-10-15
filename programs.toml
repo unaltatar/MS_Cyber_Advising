@@ -23,6 +23,11 @@ hide_sections_noting = ["Graduate Business Students Only"]
 # `course_labels` value below must appear here.
 label_order = ["Core", "Optional Core", "Tools", "Elective", "Thesis or Internship", "Internship", "Thesis"]
 
+# Short advising notes shown next to a course wherever the page lists it.
+[settings.course_notes]
+"CYBR 578" = "Internship with no credit minimum, open at any point in the program. Counts only as an elective, not toward the thesis or internship requirement."
+"CYBR 627" = "Counts only as an elective, not toward the thesis or internship requirement."
+
 # Graduate courses that cannot be taken once the student has credit for one of
 # the listed courses (usually the 400-level undergraduate version). Seeded from
 # the October 2026 course descriptions and the program sheets. The build adds
@@ -96,6 +101,7 @@ seat_groups = ["DFC-MS-RISKPCC students", "Cyber Risk Mgmt & Cmpl MS conc"]
   credits = 3
   courses = ["CYBR 678", "CYBR 699"]
   course_labels = { "CYBR 678" = "Internship", "CYBR 699" = "Thesis" }
+  note = "Only CYBR 678 or CYBR 699 fill this requirement. CYBR 578 and CYBR 627 count as electives."
 
   [[programs.requirements]]
   id = "electives"
@@ -106,7 +112,7 @@ seat_groups = ["DFC-MS-RISKPCC students", "Cyber Risk Mgmt & Cmpl MS conc"]
   any_graduate = ["CYBR"]
   courses = ["BCYB 644", "BCYB 602", "BFOR 650"]
   receives_replaced_credits = true
-  note = "Any other CYBR graduate course. CYBR 678 or CYBR 699 can count here with advisement."
+  note = "Any other CYBR graduate course, including CYBR 578 and CYBR 627. CYBR 678 or CYBR 699 can count here with advisement."
 
 
 [[programs]]
@@ -151,6 +157,7 @@ seat_groups = ["DFC-MS-HLTHSECPVC students", "Cyber Privacy Hlth Inf MS conc"]
   credits = 3
   courses = ["CYBR 678", "CYBR 699"]
   course_labels = { "CYBR 678" = "Internship", "CYBR 699" = "Thesis" }
+  note = "Only CYBR 678 or CYBR 699 fill this requirement. CYBR 578 and CYBR 627 count as electives."
 
   [[programs.requirements]]
   id = "electives"
@@ -161,4 +168,4 @@ seat_groups = ["DFC-MS-HLTHSECPVC students", "Cyber Privacy Hlth Inf MS conc"]
   any_graduate = ["CYBR"]
   courses = []
   receives_replaced_credits = true
-  note = "Any CYBR graduate course, for example CYBR 540, 550 or 554."
+  note = "Any CYBR graduate course, for example CYBR 540, 550, 554, 578 or 627."

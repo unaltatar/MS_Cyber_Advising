@@ -56,6 +56,10 @@ def load_programs(path):
             _check_code(b, f"exclusions[{code}]")
     if not all(isinstance(p, str) and p.strip() for p in settings.get("hide_sections_noting", [])):
         raise ConfigError("settings.hide_sections_noting must be a list of non-empty strings")
+    for code, note in settings.get("course_notes", {}).items():
+        _check_code(code, "settings.course_notes")
+        if not isinstance(note, str) or not note.strip():
+            raise ConfigError(f"settings.course_notes[{code}] must be a non-empty string")
 
     programs = cfg.get("programs", [])
     if not programs:

@@ -15,7 +15,9 @@ const UNDERGRAD_NO_CREDIT = new Set(["E", "F", "Z", "I", "V", "U", "W", "NC"]);
 const IN_PROGRESS_GRADES = new Set(["ENRL", "IP", "NG", ""]);
 const GRADE_TOKEN = /^#?(?:[A-E][+-]?|F|S|U|W|I|Z|V|P|NC|ENRL|IP|NG|-)$/;
 
-// Courses that need a faculty supervisor; the registrar lists one section per instructor.
+// Courses arranged with a faculty supervisor; the registrar lists one section per instructor.
+// This only changes how they are listed. Which requirement each fills comes from
+// programs.toml: CYBR 578 and CYBR 627 are electives, CYBR 678 and CYBR 699 the capstone.
 export const SUPERVISED = new Set(["CYBR 578", "CYBR 627", "CYBR 678", "CYBR 699"]);
 
 // Term headings: "Fall 2025", "Fall 2025 Term", "Fall Term 2025", "2025 Fall Term".
