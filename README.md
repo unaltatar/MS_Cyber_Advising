@@ -28,6 +28,13 @@ publishes the site with fresh data. If validation fails, nothing is published
 and the previous site stays up. The page warns when its data is over a day old.
 To refresh by hand: Actions, "Update data and publish site", Run workflow.
 
+The data is published straight to the site and never committed, so the commit
+history holds only real changes. GitHub stops scheduled runs in a public repo
+after 60 days without activity, so when the newest commit is over 30 days old the
+workflow adds a one-line keepalive commit (`.github/keepalive`). Pull before
+pushing from a local copy. If the hourly refresh ever stops anyway, open Actions,
+select the workflow and choose "Enable workflow".
+
 | Path | What it is |
 |---|---|
 | `programs.toml` | Program requirements, reserved-seat groups and 400/500-level exclusions. Edit this to change rules. |

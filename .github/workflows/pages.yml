@@ -6,6 +6,10 @@ on:
   schedule:
     - cron: "23 * * * *" # every hour at :23; GitHub may start scheduled runs late
   workflow_dispatch:
+    inputs:
+      keepalive_after_days:
+        description: "Add a keepalive commit if the last commit is older than this many days"
+        default: "30"
   push:
     branches: [main]
 
@@ -43,3 +47,33 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v5
+
+  # GitHub turns off scheduled runs in a public repo after 60 days without repository
+  # activity, and the hourly runs above commit nothing. When the newest commit is over
+  # 30 days old, record the date in .github/keepalive so the hourly refresh keeps running.
+  # This job does not depend on the build, so it still runs while the registrar is down.
+  keepalive:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Commit a keepalive if the repository has been quiet
+        env:
+          AFTER_DAYS: ${{ inputs.keepalive_after_days || '30' }}
+        run: |
+          age_days=$(( ( $(date +%s) - $(git log -1 --format=%ct) ) / 86400 ))
+          echo "Newest commit is $age_days day(s) old; keepalive threshold is $AFTER_DAYS."
+          if [ "$age_days" -lt "$AFTER_DAYS" ]; then
+            echo "No keepalive needed."
+            exit 0
+          fi
+          date -u +%Y-%m-%dT%H:%MZ > .github/keepalive
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/keepalive
+          git commit -m "Keep the scheduled data refresh active"
+          git pull --rebase --quiet
+          git push

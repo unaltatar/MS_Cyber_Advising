@@ -24,6 +24,9 @@ Always name the Node test file. The CI runner's Node treats `node --test tests/`
 - `docs/`: the published website. `advising.js` holds the pure rules (tested in Node); `app.js` renders. `docs/data/` is generated and gitignored.
 - `tests/`: `test_soc.py` (unittest) and `advising.test.mjs` (node:test).
 - `.github/workflows/pages.yml`: hourly, on push and on demand: test, build, deploy to Pages. Any failure means no deploy, so the last good site stays up.
+  - Data is never committed.
+  - A `keepalive` job commits `.github/keepalive` when the newest commit is over 30 days old, because GitHub disables scheduled runs after 60 quiet days.
+  - The bot may have pushed, so run `git pull` before pushing.
 
 ## Student privacy (FERPA): hard rules
 
