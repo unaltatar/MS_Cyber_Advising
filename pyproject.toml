@@ -1,0 +1,6 @@
+[project]
+name = "ms-cyber-advising"
+version = "0.1.0"
+description = "Course availability and degree-progress helper for UAlbany MS Cybersecurity advising"
+requires-python = ">=3.12"
+dependencies = []

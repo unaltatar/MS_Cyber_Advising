@@ -1,0 +1,10 @@
+# Python
+__pycache__/
+.venv/
+
+# Local output from manual scraper runs
+out/
+
+# Never commit student data, even anonymized. Keep local samples here.
+samples/
+*.local.*
