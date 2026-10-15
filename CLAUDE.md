@@ -63,7 +63,10 @@ Always name the Node test file. The CI runner's Node treats `node --test tests/`
 ## Writing
 
 - Never use em dashes, in site copy, comments, docs or commit messages.
-- The site UI is in English for students and other advisors. The maintainer writes in Turkish; reply in Turkish.
+- The site UI is in English and is used by both students and advisors.
+  - Use neutral wording: "student", never "you" or "your".
+  - Requirement labels carry no numbers. Their order comes from `settings.label_order`.
+- The maintainer writes in Turkish or English. Reply in the language of each message.
 - Use the standard library only, in both Python and the browser. There is no package.json; add no dependencies without approval.
 - Match the comment density of neighbouring code.
 - Pushing to `main` deploys the public site, so confirm with the maintainer before pushing.
