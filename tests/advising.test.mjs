@@ -1,4 +1,4 @@
-// Tests for docs/advising.js. Run: node --test tests/
+// Tests for docs/advising.js. Run: node --test tests/advising.test.mjs
 // The transcript below is synthetic. Never put a real student's history in this repo.
 import { test } from "node:test";
 import assert from "node:assert/strict";

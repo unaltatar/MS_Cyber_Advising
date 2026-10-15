@@ -27,7 +27,7 @@ jobs:
       - name: Test
         run: |
           python3 -m unittest discover -s tests
-          node --test tests/
+          node --test tests/advising.test.mjs
       - name: Fetch schedule and build data
         run: python3 -m scraper build --programs programs.toml --out docs/data
       - uses: actions/upload-pages-artifact@v5

@@ -59,6 +59,6 @@ Python 3.12 or newer and Node 18 or newer. On Windows use `py`:
 py -m scraper build                 # fetch all terms into docs/data/
 py -m http.server 8000 --directory docs
 py -m unittest discover -s tests
-node --test tests/
+node --test tests/advising.test.mjs
 py -m scraper fetch --term "Spring 2027" --subject CYBR
 ```
