@@ -74,10 +74,9 @@ function seatCell(program, s) {
 function seatNote(program, s) {
   const seat = A.seatsFor(program, s);
   const parts = [];
-  if (seat.mine.length > 1) {
-    parts.push(`Reserved for your concentration: ${seat.mine.map((p) => `${fmtGroup(p.group)} ${p.seats}`).join(", ")} (smaller one counted)`);
-  } else {
-    for (const p of seat.mine) parts.push(`${p.seats} reserved for ${fmtGroup(p.group)}`);
+  if (seat.mine.length) {
+    parts.push(`${seat.reserved} reserved for your concentration` +
+      (seat.mine.length > 1 ? ` (${seat.mine.map((p) => `${fmtGroup(p.group)} ${p.seats}`).join(", ")})` : ""));
   }
   const other = seat.others.reduce((n, p) => n + p.seats, 0);
   if (other) parts.push(`${other} reserved for other groups`);
@@ -127,15 +126,24 @@ function requirementCard(r, ev) {
       h("span", { class: "muted" }, `${c.term}${c.grade && c.status === "completed" ? `, ${c.grade}` : ""}`),
       c.status === "in_progress" ? h("span", { class: "chip chip-progress" }, "In progress") : null));
   }
-  for (const w of r.waived) {
-    if (w.deficit) {
-      items.push(h("li", { class: "waived" }, `${w.credits} credits moved to electives because ${w.codes.join(", ")} cannot be taken.`));
+  for (const x of r.replaced) {
+    if (x.deficit) {
+      items.push(h("li", { class: "blocked" },
+        `Too few courses left in this list after ${x.code}, so ${x.credits} credits are added to electives instead.`));
     } else {
-      items.push(h("li", { class: "waived" },
-        h("strong", null, w.codes.join(" or ")), " counted as met: you have credit for ",
-        h("strong", null, w.by.code), ` (${w.by.term || "earlier"}), so you cannot take ${w.code}. ` +
-        `Take ${w.credits} more elective credits instead.`));
+      items.push(h("li", { class: "blocked" },
+        h("strong", null, x.code), ": you cannot take this course because you have credit for ",
+        h("strong", null, x.by.code), ` (${x.by.term || "earlier"}). Take one more elective instead.`));
     }
+  }
+  for (const b of r.blockedOptions) {
+    items.push(h("li", { class: "blocked" },
+      h("strong", null, b.code), ": not available to you because you have credit for ",
+      h("strong", null, b.by.code), ` (${b.by.term || "earlier"}). Choose another course from this list.`));
+  }
+  for (const x of r.extraFrom) {
+    items.push(h("li", { class: "muted" },
+      `Includes ${x.credits} extra credits because ${x.code} cannot be taken.`));
   }
   for (const slot of r.openSlots) {
     items.push(h("li", { class: "needed" }, "Still needed: ", h("strong", null, slot.join(" or "))));
@@ -155,12 +163,24 @@ function requirementCard(r, ev) {
     r.note ? h("p", { class: "hint" }, r.note) : null);
 }
 
-function sectionRow(program, s, label) {
+// For courses taken as separate modules or topics (CINF 523), remind the student to check
+// that a new section is not a topic they already took; the transcript does not show topics.
+function repeatNote(ev, s) {
+  if (!ev.repeatable.has(s.code) || A.SUPERVISED.has(s.code)) return null;
+  const before = ev.attempts.filter((c) => c.code === s.code);
+  if (!before.length) return null;
+  const when = before.map((c) => c.term || "earlier").join(", ");
+  return h("div", { class: "prereq" },
+    `You already have ${before.length} ${s.code} module${before.length === 1 ? "" : "s"} (${when}). Check that this topic is different.`);
+}
+
+function sectionRow(program, ev, s, label) {
   return h("tr", null,
     h("td", null, h("span", { class: "req-label" }, label)),
     h("td", { class: "nowrap" }, h("strong", null, s.code)),
     h("td", null, s.title, s.topic ? h("div", { class: "topic" }, s.topic) : null,
-      s.prerequisite ? h("div", { class: "prereq" }, `Prerequisite: ${s.prerequisite}`) : null),
+      s.prerequisite ? h("div", { class: "prereq" }, `Prerequisite: ${s.prerequisite}`) : null,
+      repeatNote(ev, s)),
     h("td", null, sessionCell(s)),
     h("td", null, fmtCredits(s)),
     h("td", { class: "nowrap" }, s.class_number),
@@ -229,7 +249,7 @@ function recommendations(program, ev, term, prefs) {
       ? "Your remaining requirements are covered by completed and in-progress courses."
       : `No matching sections in ${term.label}${hidden ? " with your format and time choices" : ""}.`));
   }
-  if (regular.length) out.push(sectionTable(regular.map(({ s, label }) => sectionRow(program, s, label))));
+  if (regular.length) out.push(sectionTable(regular.map(({ s, label }) => sectionRow(program, ev, s, label))));
   out.push(supervisedBlock(program, supervised));
   if (hidden) out.push(h("p", { class: "hint" }, `${hidden} more matching section${hidden === 1 ? " is" : "s are"} hidden by your format or time choices.`));
   return h("section", { class: "panel" }, out);
@@ -247,7 +267,7 @@ function summary(program, ev) {
 
 function leftoverNote(items, text) {
   if (!items.length) return null;
-  return h("p", { class: "hint" }, text, items.map((u) => u.course.originalCode || u.course.code).join(", "), ".");
+  return h("p", { class: "hint" }, text, items.map((u) => u.course.code).join(", "), ".");
 }
 
 function coursesRead(courses, ev) {
@@ -257,14 +277,13 @@ function coursesRead(courses, ev) {
   const counted = new Set(ev.attempts);
   const leftover = new Map(ev.unapplied.map((u) => [u.course, u.extra]));
   const howItCounts = (c) => {
-    const alias = c.originalCode ? ` (as ${c.code})` : "";
-    if (appliedTo.has(c)) return `${c.status === "in_progress" ? "In progress toward" : "Counts toward"} ${appliedTo.get(c)}${alias}`;
+    if (appliedTo.has(c)) return `${c.status === "in_progress" ? "In progress toward" : "Counts toward"} ${appliedTo.get(c)}`;
     if (blockers.has(c)) return `Rules out ${blockers.get(c)}`;
     if (!c.graduate) return "Undergraduate";
     if (c.status === "no_credit") return `No graduate credit (${c.grade})`;
     if (c.status === "unknown") return "Grade not recognized";
     if (!counted.has(c)) return "Replaced by another attempt";
-    if (leftover.get(c)) return `Extra credit: the requirements it could fill are already full${alias}`;
+    if (leftover.get(c)) return `Extra credit: the requirements it could fill are already full`;
     return "Does not count toward this concentration";
   };
   const terms = [...new Set(courses.map((c) => c.term))].sort((a, b) => A.termKey(b) - A.termKey(a));
@@ -273,7 +292,7 @@ function coursesRead(courses, ev) {
     for (const c of courses.filter((x) => x.term === t)) {
       rows.push(h("tr", { class: c.graduate ? "" : "undergrad" },
         h("td", { class: "nowrap" }, c.term || "-"),
-        h("td", { class: "nowrap" }, (c.originalCode || c.code) + c.suffix),
+        h("td", { class: "nowrap" }, c.code + c.suffix),
         h("td", null, c.title),
         h("td", null, c.credits),
         h("td", null, c.status === "in_progress" ? "Enrolled" : c.grade || "-"),
@@ -351,13 +370,13 @@ function render() {
   const text = $("#history").value;
 
   if (text.trim()) {
-    const courses = A.applyAliases(A.parseTranscript(text), cfg.aliases);
+    const courses = A.parseTranscript(text);
     if (!courses.length) {
       out.append(h("section", { class: "panel" }, h("p", { class: "banner banner-warn" },
         "No courses were recognized in the pasted text. Paste lines that include the course code, for example ",
         h("code", null, "3 CYBR503|SEM Advanced Networking & Security  A"), ".")));
     } else {
-      const ev = A.evaluate(program, courses, { exclusions, repeatable: cfg.settings.repeatable });
+      const ev = A.evaluate(program, courses, { exclusions, repeatable: cfg.settings.repeatable, unavailable: schedule.restricted_codes || [] });
       out.append(h("section", { class: "panel" },
         h("h3", null, `Your progress: ${program.name}`),
         summary(program, ev),

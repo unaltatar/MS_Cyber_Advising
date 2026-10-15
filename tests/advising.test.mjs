@@ -35,11 +35,11 @@ const RISK = {
     { id: "optional-core", label: "2-Optional Core", name: "3 of 5", type: "choose", credits: 9,
       courses: ["CYBR 545", "CYBR 547", "CYBR 549", "CYBR 552", "CINF 585"] },
     { id: "tools", label: "3-Tools", name: "Tools", type: "choose", credits: 3,
-      courses: ["CINF 523", "BFOR 615", "BFOR 642", "BFOR 643"] },
+      courses: ["CINF 523", "CYBR 555", "BFOR 615", "BFOR 642", "BFOR 643"] },
     { id: "capstone", label: "5/6", name: "Capstone", type: "choose", credits: 3,
       courses: ["CYBR 678", "CYBR 699"], course_labels: { "CYBR 678": "5-Internship", "CYBR 699": "6-Thesis" } },
     { id: "electives", label: "4-Elective", name: "Electives", type: "choose", credits: 9,
-      any_graduate: ["CYBR"], courses: ["BFOR 650"], receives_waived_credits: true },
+      any_graduate: ["CYBR"], courses: ["BFOR 650"], receives_replaced_credits: true },
   ],
 };
 const OPTS = {
@@ -85,32 +85,45 @@ test("graduate grade rules follow the Graduate Bulletin", () => {
   assert.equal(A.gradeStatus("ENRL", true), "in_progress");
 });
 
-test("evaluates requirements: best repeat, waiver, modules, in-progress", () => {
+test("evaluates requirements: best repeat, replaced course, modules, in-progress", () => {
   const ev = A.evaluate(RISK, A.parseTranscript(SYNTHETIC), OPTS);
   const [core, opt, tools, cap, elect] = ev.requirements;
 
-  // CYBR 453 rules out CYBR 553: the slot counts as met and 3 credits move to electives.
-  assert.equal(core.waived.length, 1);
-  assert.equal(core.waived[0].code, "CYBR 553");
+  // CYBR 453 rules out CYBR 553. It is not counted as taken: it is noted, and one
+  // more elective (3 credits) is required instead.
+  assert.deepEqual(core.replaced.map((x) => `${x.code} by ${x.by.code}`), ["CYBR 553 by CYBR 453"]);
+  assert.ok(!core.applied.some((c) => c.code === "CYBR 553"));
   assert.equal(core.needed, 9);
   assert.deepEqual(core.applied.map((c) => c.code), ["CYBR 503"]);
   assert.equal(core.openSlots.length, 2);
   assert.equal(elect.needed, 12);
+  assert.deepEqual(elect.extraFrom.map((x) => x.code), ["CYBR 553"]);
 
   // CYBR 545 was retaken: the A counts, the C- does not.
   assert.deepEqual(opt.applied.map((c) => `${c.code} ${c.grade}`), ["CYBR 545 A", "CYBR 547 B+"]);
 
-  // Three 1-credit CINF 523 modules fill the tools requirement.
+  // Three 1-credit CINF 523 modules fill the tools requirement, so the in-progress
+  // CYBR 555 goes to electives.
   assert.equal(tools.status, "met");
   assert.equal(tools.done, 3);
-  // BFOR 615 is ruled out by BFOR 415, but in a choose list that just removes the option.
+  // In a choose list a ruled-out course is noted and left out of the options.
+  assert.deepEqual(tools.blockedOptions.map((b) => `${b.code} by ${b.by.code}`), ["BFOR 615 by BFOR 415"]);
   assert.ok(!tools.options.includes("BFOR 615"));
 
   assert.deepEqual(elect.applied.map((c) => c.code), ["CYBR 555"]);
   assert.equal(elect.inProgress, 3);
   assert.equal(cap.remaining, 3);
-  // The waived core credits moved to electives, so the degree still needs 36.
+  // The degree still needs 36 credits: the replaced core course became an elective.
   assert.equal(ev.totals.done + ev.totals.inProgress + ev.totals.remaining, 36);
+});
+
+test("courses CEHC students cannot register for are left out of the choices", () => {
+  const history = "Fall 2025\n3 CYBR503|SEM Advanced Networking & Security  A";
+  const ev = A.evaluate(RISK, A.parseTranscript(history), { ...OPTS, unavailable: ["BCYB 645", "BFOR 643", "BFOR 650"] });
+  const [core, , tools, , elect] = ev.requirements;
+  assert.deepEqual(core.openSlots, [["CYBR 553", "BCYB 644"], ["CYBR 554"], ["CYBR 536"]]);
+  assert.deepEqual(tools.options, ["CINF 523", "CYBR 555", "BFOR 615", "BFOR 642"]);
+  assert.deepEqual(elect.options, []);
 });
 
 test("warns about B- balancing; a retaken C- is not flagged", () => {
@@ -149,8 +162,8 @@ test("seats: open pool plus the student's own reserved pools", () => {
       { group: "Risk conc", seats: 5 }, { group: "Health conc", seats: 3 }] },
   });
   const r = A.seatsFor(RISK, s);
-  // 20 open + the smaller of the two pools for this concentration (7 and 5): never overstated.
-  assert.deepEqual([r.forYou, r.total, r.mine.length, r.others.length], [25, 40, 2, 2]);
+  // 20 open + both pools of this concentration (old code 7, new name 5).
+  assert.deepEqual([r.forYou, r.total, r.reserved, r.others.length], [32, 40, 12, 2]);
   assert.equal(A.seatsFor(RISK, section({ seats_remaining: 12 })).forYou, 12);
   const reservedOnly = section({ seats: { parsed: true, open: 0, pools: [{ group: "SPH only", seats: 15 }] } });
   assert.equal(A.seatsFor(RISK, reservedOnly).forYou, 0);
@@ -170,15 +183,6 @@ test("preferences: modality, days, earliest start; async and supervised always p
   assert.equal(A.matchesPreferences(internship, p({ modality: "in_person" })), true);
 });
 
-test("old and cross-listed codes count as the current course", () => {
-  const raw = A.parseTranscript("Fall 2024\n3 RPAD549|LEC Cyber Security Planning  A\n3 CYBR536|LEC Info Security Compliance Aud  A");
-  const cs = A.applyAliases(raw, { "RPAD 549": "CYBR 549", "CEHC 549": "CYBR 549" });
-  assert.deepEqual([cs[0].code, cs[0].originalCode], ["CYBR 549", "RPAD 549"]);
-  const ev = A.evaluate(RISK, cs, OPTS);
-  assert.deepEqual(ev.requirements[1].applied.map((c) => c.code), ["CYBR 549"]);
-  assert.equal(A.sectionFit(RISK, ev, section({ code: "CYBR 549" })).reason, "taken");
-});
-
 test("left-over courses: extra when a full requirement would take them, otherwise not counted", () => {
   const history = [
     "Fall 2025",
@@ -187,7 +191,7 @@ test("left-over courses: extra when a full requirement would take them, otherwis
   ].join("\n");
   const narrow = { ...RISK, requirements: RISK.requirements.filter((r) => r.id !== "electives") };
   const program = { ...narrow, requirements: [...narrow.requirements,
-    { id: "electives", label: "4-Elective", name: "Electives", type: "choose", credits: 0, courses: [], any_graduate: ["CYBR"], receives_waived_credits: true }] };
+    { id: "electives", label: "4-Elective", name: "Electives", type: "choose", credits: 0, courses: [], any_graduate: ["CYBR"], receives_replaced_credits: true }] };
   const ev = A.evaluate(program, A.parseTranscript(history), OPTS);
   const left = Object.fromEntries(ev.unapplied.map((u) => [u.course.code, u.extra]));
   assert.deepEqual(left, { "CYBR 552": true, "HHPM 525": false });

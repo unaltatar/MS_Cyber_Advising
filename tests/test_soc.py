@@ -101,6 +101,13 @@ class BuildTests(unittest.TestCase):
         self.assertEqual(sorted(labels, key=build.term_sort_key, reverse=True),
                          ["Spring 2027", "Winter 2027", "Fall 2026", "Summer 2026"])
 
+    def test_business_only_sections_are_hidden(self):
+        phrases = ["Graduate Business Students Only"]
+        self.assertTrue(build.is_hidden({"prerequisite": "Graduate Business Students Only."}, phrases))
+        self.assertTrue(build.is_hidden({"prerequisite": "graduate business students only"}, phrases))
+        self.assertFalse(build.is_hidden({"prerequisite": ""}, phrases))
+        self.assertFalse(build.is_hidden({"prerequisite": "Graduate standing."}, phrases))
+
     def test_repo_programs_file_is_valid(self):
         cfg = build.load_programs(pathlib.Path(__file__).parent.parent / "programs.toml")
         self.assertEqual({p["id"] for p in cfg["programs"]}, {"risk", "health"})
@@ -119,7 +126,7 @@ seat_groups = []
   type = "choose"
   credits = 33
   courses = ["CYBR 503"]
-  receives_waived_credits = true
+  receives_replaced_credits = true
 """
         with tempfile.TemporaryDirectory() as d:
             path = pathlib.Path(d) / "p.toml"

@@ -170,7 +170,7 @@ textarea { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font
 .req-items { margin: 8px 0 0; padding-left: 20px; }
 .req-items li { margin: 2px 0; }
 .req-items .needed { color: var(--accent); }
-.req-items .waived { color: var(--muted); }
+.req-items .blocked { color: var(--warn); }
 .req-label {
   display: inline-block; white-space: nowrap;
   font-size: 0.78rem; font-weight: 700;

@@ -21,7 +21,7 @@ blocks it from sending data to any other site. Tests use a synthetic history.
 ## How it works
 
 The browser cannot read albany.edu directly, so a GitHub Actions workflow
-(`.github/workflows/pages.yml`) runs every 4 hours. It queries the
+(`.github/workflows/pages.yml`) runs every hour. It queries the
 [Schedule of Classes](https://www.albany.edu/registrar/schedule-classes) for
 every listed term, keeps the sections the programs use, validates them, and
 publishes the site with fresh data. If validation fails, nothing is published
@@ -45,11 +45,17 @@ validates every record.
   graduate credit; B-, C+ and C count only if the degree average stays at 3.0.
   For a repeated course the higher grade counts.
 - A graduate course cannot be taken after credit for its listed equivalent
-  (usually the 400-level version). If that course fills a required slot, the
-  slot counts as met and its credits move to electives. In a "choose" list the
-  course is simply not offered.
-- Seats for a student are the open seats plus seats reserved for their
-  concentration's groups.
+  (usually the 400-level version). It is never counted as taken. If it is a
+  required course, the page notes it and the student takes one more elective
+  instead. In a "choose" list the page notes it and the student picks another.
+- Sections whose description says "Graduate Business Students Only" are not
+  shown, because CEHC students cannot register for them. Courses with no open
+  section are also left out of the "choose from" lists.
+- Seats for a student are the open seats plus the seats reserved for their
+  concentration. Each concentration appears under its old code and its new
+  name; both pools are counted.
+- CINF 523 modules count each time. The transcript does not show the topic, so
+  the page reminds the student to check that a new module is a different topic.
 
 ## Running locally
 

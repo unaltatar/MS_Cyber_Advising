@@ -54,12 +54,8 @@ def load_programs(path):
         _check_code(code, "exclusions")
         for b in blockers:
             _check_code(b, f"exclusions[{code}]")
-    aliases = cfg.get("aliases", {})
-    for old, new in aliases.items():
-        _check_code(old, "aliases")
-        _check_code(new, f"aliases[{old}]")
-        if new in aliases:
-            raise ConfigError(f"aliases: {old!r} points to {new!r}, which is itself an alias")
+    if not all(isinstance(p, str) and p.strip() for p in settings.get("hide_sections_noting", [])):
+        raise ConfigError("settings.hide_sections_noting must be a list of non-empty strings")
 
     programs = cfg.get("programs", [])
     if not programs:
@@ -94,9 +90,15 @@ def load_programs(path):
             total += r["credits"]
         if total != p["total_credits"]:
             raise ConfigError(f"{p['id']}: requirements add up to {total}, not {p['total_credits']}")
-        if sum(bool(r.get("receives_waived_credits")) for r in p["requirements"]) != 1:
-            raise ConfigError(f"{p['id']}: exactly one requirement must set receives_waived_credits")
+        if sum(bool(r.get("receives_replaced_credits")) for r in p["requirements"]) != 1:
+            raise ConfigError(f"{p['id']}: exactly one requirement must set receives_replaced_credits")
     return cfg
+
+
+def is_hidden(section, phrases):
+    """True if the section's prerequisite note contains one of the configured phrases."""
+    note = section["prerequisite"].lower()
+    return any(p.lower() in note for p in phrases)
 
 
 def referenced(cfg):
@@ -112,7 +114,14 @@ def referenced(cfg):
 
 
 def fetch_all(cfg, log=print):
+    """Return (terms, restricted_codes).
+
+    restricted_codes lists courses whose every fetched section is hidden, so the
+    page can leave them out of "choose from" lists too.
+    """
     codes, any_subjects = referenced(cfg)
+    phrases = cfg.get("settings", {}).get("hide_sections_noting", [])
+    hidden_codes, visible_codes = set(), set()
     subjects = sorted(any_subjects | {c.split()[0] for c in codes})
     fields, terms, info = soc.load_form()
     log(info)
@@ -131,14 +140,18 @@ def fetch_all(cfg, log=print):
                     f"canary failed: {label} graduate {subject} returned {len(found)} sections, "
                     f"expected at least {CANARY_MIN_SECTIONS}"
                 )
-            kept = [s for s in found if s["code"] in codes or s["subject"] in any_subjects]
-            log(f"  {label:12} {subject}: {len(found):3d} graduate sections, {len(kept):3d} kept")
+            relevant = [s for s in found if s["code"] in codes or s["subject"] in any_subjects]
+            kept = [s for s in relevant if not is_hidden(s, phrases)]
+            hidden_codes.update(s["code"] for s in relevant if is_hidden(s, phrases))
+            visible_codes.update(s["code"] for s in kept)
+            log(f"  {label:12} {subject}: {len(found):3d} graduate sections, {len(kept):3d} kept"
+                f"{f', {len(relevant) - len(kept)} hidden' if len(relevant) > len(kept) else ''}")
             sections.extend(kept)
         out_terms.append({"id": term_id, "label": label, "sections": sections})
-    return out_terms
+    return out_terms, sorted(hidden_codes - visible_codes)
 
 
-def write(cfg, terms, out_dir):
+def write(cfg, terms, restricted, out_dir):
     out_dir = pathlib.Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     found = {}
@@ -151,6 +164,7 @@ def write(cfg, terms, out_dir):
         "source": soc.PAGE_URL,
         "terms": terms,
         "exclusions_found": {k: sorted(v) for k, v in sorted(found.items())},
+        "restricted_codes": restricted,
     }
     (out_dir / "schedule.json").write_text(json.dumps(schedule, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     (out_dir / "programs.json").write_text(json.dumps(cfg, ensure_ascii=False, indent=1), encoding="utf-8")

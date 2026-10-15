@@ -41,11 +41,12 @@ def cmd_fetch(args):
 
 def cmd_build(args):
     cfg = build.load_programs(args.programs)
-    terms = build.fetch_all(cfg)
-    schedule = build.write(cfg, terms, args.out)
+    terms, restricted = build.fetch_all(cfg)
+    schedule = build.write(cfg, terms, restricted, args.out)
     total = sum(len(t["sections"]) for t in schedule["terms"])
     print(f"\nwrote {args.out}: {len(schedule['terms'])} terms, {total} sections, "
-          f"{len(schedule['exclusions_found'])} exclusion rules from descriptions")
+          f"{len(schedule['exclusions_found'])} exclusion rules from descriptions, "
+          f"never open to CEHC students: {', '.join(restricted) or 'none'}")
     return 0
 
 

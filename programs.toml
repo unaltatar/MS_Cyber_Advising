@@ -15,23 +15,19 @@
 # Courses that count every time they are taken (different modules or topics).
 repeatable = ["CINF 523", "CYBR 699", "CYBR 678", "HHPM 669"]
 
-# Older or cross-listed codes on a transcript that count as the course on the right.
-# The program map notes "CYBR/RPAD 549 (still CEHC 549)" and "CYBR/RPAD 569";
-# BFOR 602 Cyberlaw & Ethics is now offered as BCYB 602.
-[aliases]
-"CEHC 549" = "CYBR 549"
-"RPAD 549" = "CYBR 549"
-"RPAD 569" = "CYBR 569"
-"BFOR 602" = "BCYB 602"
+# Sections whose course description contains one of these notes are not shown,
+# because CEHC students cannot register for them.
+hide_sections_noting = ["Graduate Business Students Only"]
 
 # Graduate courses that cannot be taken once the student has credit for one of
 # the listed courses (usually the 400-level undergraduate version). Seeded from
 # the October 2026 course descriptions and the program sheets. The build adds
 # any new rule it finds in current course descriptions.
 #
-# Rule applied on the page: if a course that fills a required slot is ruled out,
-# the slot counts as met and its 3 credits move to electives. In a "choose"
-# list, a ruled-out course is simply not offered as an option.
+# Rule applied on the page: a ruled-out course is never counted as taken. If it
+# fills a required slot, the page notes that the student cannot take it and adds
+# one more elective (3 credits) instead. In a "choose" list, the ruled-out course
+# is noted and the student picks another course from the list.
 [exclusions]
 "CYBR 503" = ["CYBR 403"]
 "CYBR 536" = ["CYBR 436"]
@@ -84,9 +80,9 @@ seat_groups = ["DFC-MS-RISKPCC students", "Cyber Risk Mgmt & Cmpl MS conc"]
   name = "Cybersecurity tools course"
   type = "choose"
   credits = 3
-  # The colleague's Spring 2027 sheet also lists CYBR 555 here; add it if that is current policy.
-  courses = ["CINF 523", "BFOR 615", "BFOR 642", "BFOR 643"]
-  note = "CINF 523 is taken as three 1-credit modules, as advised. BFOR 615 cannot be taken after BFOR 415 or CYBR 540."
+  # CYBR 555 was moved into this category by a program change (confirmed October 2026).
+  courses = ["CINF 523", "CYBR 555", "BFOR 615", "BFOR 642", "BFOR 643"]
+  note = "CINF 523 is taken as three 1-credit modules, as advised."
 
   [[programs.requirements]]
   id = "capstone"
@@ -105,7 +101,7 @@ seat_groups = ["DFC-MS-RISKPCC students", "Cyber Risk Mgmt & Cmpl MS conc"]
   credits = 9
   any_graduate = ["CYBR"]
   courses = ["BCYB 644", "BCYB 602", "BFOR 650"]
-  receives_waived_credits = true
+  receives_replaced_credits = true
   note = "Any other CYBR graduate course. CYBR 678 or CYBR 699 can count here with advisement."
 
 
@@ -139,8 +135,9 @@ seat_groups = ["DFC-MS-HLTHSECPVC students", "Cyber Privacy Hlth Inf MS conc"]
   name = "Cybersecurity tools course"
   type = "choose"
   credits = 3
-  courses = ["CINF 523", "BFOR 615", "BFOR 642", "BFOR 643"]
-  note = "CINF 523 is taken as three 1-credit modules. BFOR 615 cannot be taken after BFOR 415 or CYBR 540."
+  # CYBR 555 was moved into this category by a program change (confirmed October 2026).
+  courses = ["CINF 523", "CYBR 555", "BFOR 615", "BFOR 642", "BFOR 643"]
+  note = "CINF 523 is taken as three 1-credit modules, as advised."
 
   [[programs.requirements]]
   id = "capstone"
@@ -159,5 +156,5 @@ seat_groups = ["DFC-MS-HLTHSECPVC students", "Cyber Privacy Hlth Inf MS conc"]
   credits = 9
   any_graduate = ["CYBR"]
   courses = []
-  receives_waived_credits = true
+  receives_replaced_credits = true
   note = "Any CYBR graduate course, for example CYBR 540, 550 or 554."

@@ -114,17 +114,6 @@ export function parseTranscript(text) {
   return courses;
 }
 
-// Rewrite older or cross-listed codes ("RPAD 549") to the code the rules use ("CYBR 549").
-// The original code is kept for display.
-export function applyAliases(courses, aliases) {
-  return courses.map((c) => {
-    const to = (aliases || {})[c.code];
-    if (!to) return c;
-    const [subject, number] = to.split(" ");
-    return { ...c, code: to, subject, number, graduate: isGraduate(number), originalCode: c.code };
-  });
-}
-
 function rank(c) {
   if (c.status === "completed") return 2 + (GRADE_POINTS[c.grade] ?? 3.0) / 10;
   if (c.status === "in_progress") return 1;
@@ -181,13 +170,19 @@ function accepts(req, code) {
 }
 
 // Fill each requirement, in order, from the student's countable graduate courses.
-export function evaluate(program, courses, { exclusions = {}, repeatable = [] } = {}) {
+// A course the student is ruled out of is never counted as taken. In a required
+// slot it is replaced by one more elective; in a choose list it is only noted.
+// `unavailable` lists courses CEHC students cannot register for; they still count
+// if already on the transcript but are not offered as options.
+export function evaluate(program, courses, { exclusions = {}, repeatable = [], unavailable = [] } = {}) {
   const rep = new Set(repeatable);
+  const closed = new Set(unavailable);
   const attempts = countableAttempts(courses, repeatable);
   const pool = attempts.map((c) => ({ course: c, used: false }));
   const blocked = blockedCourses(courses, exclusions);
   const heldCodes = new Set(attempts.map((c) => c.code));
-  let waivedCredits = 0;
+  const replacements = [];
+  let replacedCredits = 0;
 
   const take = (pred) => {
     for (const status of ["completed", "in_progress"]) {
@@ -205,7 +200,8 @@ export function evaluate(program, courses, { exclusions = {}, repeatable = [] } 
     const r = {
       id: req.id, label: req.label, name: req.name, note: req.note || "", type: req.type,
       anyGraduate: req.any_graduate || [],
-      applied: [], waived: [], openSlots: [], options: [], needed: req.credits,
+      applied: [], replaced: [], blockedOptions: [], extraFrom: [], openSlots: [], options: [],
+      needed: req.credits,
     };
     if (req.type === "all") {
       const perSlot = req.credits / req.slots.length;
@@ -217,15 +213,21 @@ export function evaluate(program, courses, { exclusions = {}, repeatable = [] } 
         }
         const code = slot.find((s) => blocked.has(s));
         if (code) {
-          r.waived.push({ codes: slot, code, by: blocked.get(code), credits: perSlot });
+          const entry = { code, by: blocked.get(code), credits: perSlot };
+          r.replaced.push(entry);
+          replacements.push(entry);
           r.needed -= perSlot;
-          waivedCredits += perSlot;
+          replacedCredits += perSlot;
         } else {
-          r.openSlots.push(slot);
+          const open = slot.filter((s) => !closed.has(s));
+          r.openSlots.push(open.length ? open : slot);
         }
       }
     } else {
-      if (req.receives_waived_credits) r.needed += waivedCredits;
+      if (req.receives_replaced_credits) {
+        r.needed += replacedCredits;
+        r.extraFrom = [...replacements];
+      }
       let got = 0;
       while (got < r.needed) {
         const hit = take((c) => accepts(req, c.code));
@@ -233,15 +235,20 @@ export function evaluate(program, courses, { exclusions = {}, repeatable = [] } 
         r.applied.push(hit);
         got += hit.credits;
       }
-      r.options = (req.courses || []).filter((code) => !blocked.has(code) && (rep.has(code) || !heldCodes.has(code)));
+      r.blockedOptions = (req.courses || []).filter((code) => blocked.has(code)).map((code) => ({ code, by: blocked.get(code) }));
+      r.options = (req.courses || []).filter((code) =>
+        !blocked.has(code) && !closed.has(code) && (rep.has(code) || !heldCodes.has(code)));
+      // If ruled-out courses leave too few choices to finish the list, the shortfall becomes electives.
       const short = r.needed - got;
       if (short > 0 && !(req.any_graduate || []).length) {
         const capacity = r.options.reduce((sum, code) => sum + (rep.has(code) ? Infinity : 3), 0);
         if (capacity < short) {
           const moved = short - capacity;
-          r.waived.push({ codes: (req.courses || []).filter((c) => blocked.has(c)), deficit: moved, credits: moved });
+          const entry = { code: r.blockedOptions.map((b) => b.code).join(", "), deficit: true, credits: moved };
+          r.replaced.push(entry);
+          replacements.push(entry);
           r.needed -= moved;
-          waivedCredits += moved;
+          replacedCredits += moved;
         }
       }
     }
@@ -324,10 +331,9 @@ export function programLabel(program, code) {
   return null;
 }
 
-// Seats this student can take: open seats plus seats reserved for their concentration.
-// A concentration can appear under two group codes (plan code and concentration name).
-// Until it is confirmed whether a student belongs to one or both, count only the
-// smaller of those pools, so the number is never overstated.
+// Seats this student can take: open seats plus every pool reserved for their
+// concentration. A concentration appears under its old code (e.g. DFC-MS-RISKPCC)
+// and its new name; both pools belong to the same program, so they are added.
 export function seatsFor(program, section) {
   const total = section.seats_remaining;
   const { pools, open, parsed } = section.seats;
@@ -336,7 +342,7 @@ export function seatsFor(program, section) {
   const groups = new Set(program.seat_groups);
   const mine = pools.filter((p) => groups.has(p.group));
   const others = pools.filter((p) => !groups.has(p.group));
-  const reserved = mine.length ? Math.min(...mine.map((p) => p.seats)) : 0;
+  const reserved = mine.reduce((s, p) => s + p.seats, 0);
   const forYou = Math.max(0, Math.min(total, (open || 0) + reserved));
   return { forYou, total, mine, others, open: open || 0, reserved };
 }
