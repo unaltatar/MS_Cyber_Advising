@@ -45,6 +45,14 @@ const fmtCredits = (s) =>
   s.credits_min === s.credits_max ? `${s.credits_min}` : `${s.credits_min}-${s.credits_max}`;
 const fmtGroup = (g) => g.replace(/\s+students$/i, "");
 
+// Requirement labels carry no numbers, so their order comes from programs.toml.
+const labelRank = (label) => {
+  const i = (cfg.settings.label_order || []).indexOf(label);
+  return i < 0 ? Number.MAX_SAFE_INTEGER : i;
+};
+const byLabel = (a, b) =>
+  labelRank(a.label) - labelRank(b.label) || a.s.code.localeCompare(b.s.code) || a.s.class_number - b.s.class_number;
+
 function sessionCell(s) {
   const [code, name] = SESSIONS[s.session] || [s.session, s.session];
   return h("abbr", { title: name }, code);
@@ -67,7 +75,7 @@ function seatCell(program, s) {
   const seat = A.seatsFor(program, s);
   if (seat.forYou === null) return h("span", { class: "seats" }, `${s.seats_remaining}`, h("span", { class: "muted" }, " (see restrictions)"));
   const cls = seat.forYou === 0 ? "seats seats-full" : seat.forYou <= 3 ? "seats seats-low" : "seats";
-  const label = seat.forYou === 0 ? "Full for you" : `${seat.forYou}`;
+  const label = seat.forYou === 0 ? "Full for this concentration" : `${seat.forYou}`;
   return h("span", { class: cls }, label, seat.forYou !== seat.total ? h("span", { class: "muted" }, ` of ${seat.total}`) : null);
 }
 
@@ -75,7 +83,7 @@ function seatNote(program, s) {
   const seat = A.seatsFor(program, s);
   const parts = [];
   if (seat.mine.length) {
-    parts.push(`${seat.reserved} reserved for your concentration` +
+    parts.push(`${seat.reserved} reserved for this concentration` +
       (seat.mine.length > 1 ? ` (${seat.mine.map((p) => `${fmtGroup(p.group)} ${p.seats}`).join(", ")})` : ""));
   }
   const other = seat.others.reduce((n, p) => n + p.seats, 0);
@@ -88,15 +96,15 @@ function prefsFromForm() {
   const days = [...document.querySelectorAll("input[name=day]")];
   const allowed = new Set(days.filter((d) => d.checked).map((d) => d.value));
   return {
-    modality: document.querySelector("input[name=modality]:checked")?.value || "any",
+    modality: document.querySelector("input[name=modality]:checked")?.value || null,
     days: allowed.size === days.length ? null : allowed,
     earliest: $("#earliest").value,
   };
 }
 
 function relativeAge(date) {
-  const mins = Math.round((Date.now() - date.getTime()) / 60000);
-  if (mins < 60) return `${Math.max(mins, 1)} minute${mins === 1 ? "" : "s"} ago`;
+  const mins = Math.max(1, Math.round((Date.now() - date.getTime()) / 60000));
+  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`;
   const hours = Math.round(mins / 60);
   if (hours < 48) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
   return `${Math.round(hours / 24)} days ago`;
@@ -132,13 +140,13 @@ function requirementCard(r, ev) {
         `Too few courses left in this list after ${x.code}, so ${x.credits} credits are added to electives instead.`));
     } else {
       items.push(h("li", { class: "blocked" },
-        h("strong", null, x.code), ": you cannot take this course because you have credit for ",
-        h("strong", null, x.by.code), ` (${x.by.term || "earlier"}). Take one more elective instead.`));
+        h("strong", null, x.code), ": cannot be taken because of credit for ",
+        h("strong", null, x.by.code), ` (${x.by.term || "earlier"}). One more elective is required instead.`));
     }
   }
   for (const b of r.blockedOptions) {
     items.push(h("li", { class: "blocked" },
-      h("strong", null, b.code), ": not available to you because you have credit for ",
+      h("strong", null, b.code), ": not available because of credit for ",
       h("strong", null, b.by.code), ` (${b.by.term || "earlier"}). Choose another course from this list.`));
   }
   for (const x of r.extraFrom) {
@@ -171,7 +179,7 @@ function repeatNote(ev, s) {
   if (!before.length) return null;
   const when = before.map((c) => c.term || "earlier").join(", ");
   return h("div", { class: "prereq" },
-    `You already have ${before.length} ${s.code} module${before.length === 1 ? "" : "s"} (${when}). Check that this topic is different.`);
+    `Already has ${before.length} ${s.code} module${before.length === 1 ? "" : "s"} (${when}). Check that this topic is different.`);
 }
 
 function sectionRow(program, ev, s, label) {
@@ -194,13 +202,13 @@ function sectionTable(rows) {
   return h("div", { class: "table-wrap" },
     h("table", { class: "sections" },
       h("thead", null, h("tr", null,
-        ["Fills", "Course", "Title", "Session", "Cr", "Class #", "When", "Where", "Instructor", "Seats for you"].map((t) => h("th", { scope: "col" }, t)))),
+        ["Requirement", "Course", "Title", "Session", "Cr", "Class #", "When", "Where", "Instructor", "Seats available"].map((t) => h("th", { scope: "col" }, t)))),
       h("tbody", null, rows)));
 }
 
 function supervisedBlock(program, groups) {
   if (!groups.size) return null;
-  const rows = [...groups.values()].map(({ s, label, sections }) => {
+  const rows = [...groups.values()].sort(byLabel).map(({ s, label, sections }) => {
     const people = [...new Set(sections.map((x) => x.meeting.instructor).filter(Boolean))];
     const seats = sections.map((x) => A.seatsFor(program, x).forYou ?? x.seats_remaining);
     const lo = Math.min(...seats);
@@ -216,9 +224,9 @@ function supervisedBlock(program, groups) {
   });
   return h("div", null,
     h("h4", null, "Internship, practicum and thesis"),
-    h("p", { class: "hint" }, "Arrange these with a faculty supervisor and your advisor first. The class number depends on your supervisor."),
+    h("p", { class: "hint" }, "Arrange these with a faculty supervisor and the advisor first. The class number depends on the supervisor."),
     h("div", { class: "table-wrap" }, h("table", { class: "sections" },
-      h("thead", null, h("tr", null, ["Fills", "Course", "Title", "Supervisors", "Seats"].map((t) => h("th", { scope: "col" }, t)))),
+      h("thead", null, h("tr", null, ["Requirement", "Course", "Title", "Supervisors", "Seats"].map((t) => h("th", { scope: "col" }, t)))),
       h("tbody", null, rows))));
 }
 
@@ -241,17 +249,17 @@ function recommendations(program, ev, term, prefs) {
       regular.push({ s, label: fit.label });
     }
   }
-  regular.sort((a, b) => a.label.localeCompare(b.label) || a.s.code.localeCompare(b.s.code) || a.s.class_number - b.s.class_number);
+  regular.sort(byLabel);
 
-  const out = [h("h3", null, `Sections in ${term.label} that count toward what you still need`)];
+  const out = [h("h3", null, `Sections in ${term.label} that count toward the remaining requirements`)];
   if (!regular.length && !supervised.size) {
     out.push(h("p", { class: "empty" }, ev.totals.remaining === 0
-      ? "Your remaining requirements are covered by completed and in-progress courses."
-      : `No matching sections in ${term.label}${hidden ? " with your format and time choices" : ""}.`));
+      ? "The remaining requirements are covered by completed and in-progress courses."
+      : `No matching sections in ${term.label}${hidden ? " with the chosen format and time limits" : ""}.`));
   }
   if (regular.length) out.push(sectionTable(regular.map(({ s, label }) => sectionRow(program, ev, s, label))));
   out.push(supervisedBlock(program, supervised));
-  if (hidden) out.push(h("p", { class: "hint" }, `${hidden} more matching section${hidden === 1 ? " is" : "s are"} hidden by your format or time choices.`));
+  if (hidden) out.push(h("p", { class: "hint" }, `${hidden} more matching section${hidden === 1 ? " is" : "s are"} hidden by the chosen format or time limits.`));
   return h("section", { class: "panel" }, out);
 }
 
@@ -301,7 +309,7 @@ function coursesRead(courses, ev) {
   }
   const grad = courses.filter((c) => c.graduate).length;
   return h("details", { class: "panel" },
-    h("summary", null, `Courses read from your paste: ${courses.length} (${grad} graduate). Check that nothing is missing.`),
+    h("summary", null, `Courses read from the pasted history: ${courses.length} (${grad} graduate). Check that nothing is missing.`),
     h("div", { class: "table-wrap" }, h("table", { class: "sections compact" },
       h("thead", null, h("tr", null, ["Term", "Course", "Title", "Cr", "Grade", "How it counts"].map((t) => h("th", { scope: "col" }, t)))),
       h("tbody", null, rows))));
@@ -314,7 +322,7 @@ function programTable(program, term, prefs) {
   const entries = term.sections
     .map((s) => ({ s, label: A.programLabel(program, s.code) }))
     .filter((e) => e.label)
-    .sort((a, b) => a.label.localeCompare(b.label) || a.s.code.localeCompare(b.s.code) || a.s.class_number - b.s.class_number);
+    .sort(byLabel);
   for (const { s, label } of entries) {
     if (!A.matchesPreferences(s, prefs)) {
       hidden++;
@@ -352,8 +360,8 @@ function programTable(program, term, prefs) {
             h("th", { scope: "col", class: "group-col" }, "Reserved: other groups"),
             h("th", { scope: "col", class: "group-col" }, "Any students"))),
           h("tbody", null, rows)))
-      : h("p", { class: "empty" }, `No ${program.name} sections in ${term.label}${hidden ? " with your format and time choices" : ""}.`),
-    hidden ? h("p", { class: "hint" }, `${hidden} section${hidden === 1 ? " is" : "s are"} hidden by your format or time choices.`) : null);
+      : h("p", { class: "empty" }, `No ${program.name} sections in ${term.label}${hidden ? " with the chosen format and time limits" : ""}.`),
+    hidden ? h("p", { class: "hint" }, `${hidden} section${hidden === 1 ? " is" : "s are"} hidden by the chosen format or time limits.`) : null);
 }
 
 function render() {
@@ -363,13 +371,13 @@ function render() {
   const program = cfg.programs.find((p) => p.id === $("#program").value);
   const term = schedule.terms.find((t) => t.id === $("#term").value);
   if (!program || !term) {
-    out.append(h("p", { class: "empty" }, "Choose your concentration to see courses."));
+    out.append(h("p", { class: "empty" }, "Choose a concentration and a term to see courses."));
     return;
   }
   const prefs = prefsFromForm();
   const text = $("#history").value;
 
-  if (text.trim()) {
+  if (text.trim() && prefs.modality) {
     const courses = A.parseTranscript(text);
     if (!courses.length) {
       out.append(h("section", { class: "panel" }, h("p", { class: "banner banner-warn" },
@@ -378,10 +386,10 @@ function render() {
     } else {
       const ev = A.evaluate(program, courses, { exclusions, repeatable: cfg.settings.repeatable, unavailable: schedule.restricted_codes || [] });
       out.append(h("section", { class: "panel" },
-        h("h3", null, `Your progress: ${program.name}`),
+        h("h3", null, `Student progress: ${program.name}`),
         summary(program, ev),
         ev.warnings.length ? h("ul", { class: "warnings" }, ev.warnings.map((w) => h("li", null, w.text))) : null,
-        h("div", { class: "reqs" }, ev.requirements.map((r) => requirementCard(r, ev))),
+        h("div", { class: "reqs" }, [...ev.requirements].sort((a, b) => labelRank(a.label) - labelRank(b.label)).map((r) => requirementCard(r, ev))),
         leftoverNote(ev.unapplied.filter((u) => u.extra),
           "Extra graduate credits, beyond what the requirements they could fill need: "),
         leftoverNote(ev.unapplied.filter((u) => !u.extra),
@@ -393,10 +401,55 @@ function render() {
   out.append(programTable(program, term, prefs));
 }
 
+// Steps still missing, in form order.
+function missingSteps() {
+  const missing = [];
+  if (!$("#program").value) missing.push({ el: $("#program"), text: "Choose the student's concentration (step 1)." });
+  if (!$("#term").value) missing.push({ el: $("#term"), text: "Choose the term being planned (step 2)." });
+  if (!document.querySelector("input[name=modality]:checked")) {
+    missing.push({ el: document.querySelector("input[name=modality]"), text: "Choose the class formats the student can take (step 3)." });
+  }
+  if (!$("#history").value.trim()) missing.push({ el: $("#history"), text: "Paste the student's course history (step 4)." });
+  return missing;
+}
+
+function showErrors(missing, focus) {
+  const box = $("#form-errors");
+  for (const step of document.querySelectorAll(".step")) step.classList.remove("step-invalid");
+  for (const el of document.querySelectorAll("[aria-invalid]")) el.removeAttribute("aria-invalid");
+  if (!missing.length) {
+    box.hidden = true;
+    box.replaceChildren();
+    return;
+  }
+  for (const m of missing) {
+    m.el.closest(".step").classList.add("step-invalid");
+    if (m.el.type !== "radio") m.el.setAttribute("aria-invalid", "true");
+  }
+  box.replaceChildren(h("strong", null, "The plan cannot be shown yet:"), h("ul", null, missing.map((m) => h("li", null, m.text))));
+  box.hidden = false;
+  if (focus) missing[0].el.focus();
+}
+
+// "Show plan" and Enter: check every step, then show the results.
+function submit() {
+  const missing = missingSteps();
+  showErrors(missing, true);
+  if (missing.length) return;
+  render();
+  $("#results").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// Keep a visible error list in step with the form as fields are filled in.
+function refresh() {
+  if (!$("#form-errors").hidden) showErrors(missingSteps(), false);
+  render();
+}
+
 let timer = null;
 const renderSoon = () => {
   clearTimeout(timer);
-  timer = setTimeout(render, 250);
+  timer = setTimeout(refresh, 250);
 };
 
 async function fetchJson(path) {
@@ -419,20 +472,20 @@ async function init() {
   showDataStatus();
 
   for (const el of document.querySelectorAll("#program, #term, #earliest, input[name=modality], input[name=day]")) {
-    el.addEventListener("change", render);
+    el.addEventListener("change", refresh);
   }
   const history = $("#history");
   history.addEventListener("input", renderSoon);
   history.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
       e.preventDefault();
-      render();
+      submit();
     }
   });
-  $("#analyze").addEventListener("click", render);
+  $("#analyze").addEventListener("click", submit);
   $("#clear").addEventListener("click", () => {
     history.value = "";
-    render();
+    refresh();
     history.focus();
   });
   render();

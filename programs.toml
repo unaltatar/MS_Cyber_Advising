@@ -19,6 +19,10 @@ repeatable = ["CINF 523", "CYBR 699", "CYBR 678", "HHPM 669"]
 # because CEHC students cannot register for them.
 hide_sections_noting = ["Graduate Business Students Only"]
 
+# Order in which requirement labels are listed on the page. Every `label` and
+# `course_labels` value below must appear here.
+label_order = ["Core", "Optional Core", "Tools", "Elective", "Thesis or Internship", "Internship", "Thesis"]
+
 # Graduate courses that cannot be taken once the student has credit for one of
 # the listed courses (usually the 400-level undergraduate version). Seeded from
 # the October 2026 course descriptions and the program sheets. The build adds
@@ -55,7 +59,7 @@ seat_groups = ["DFC-MS-RISKPCC students", "Cyber Risk Mgmt & Cmpl MS conc"]
 
   [[programs.requirements]]
   id = "core"
-  label = "1-Core"
+  label = "Core"
   name = "Core courses"
   type = "all"
   credits = 12
@@ -68,7 +72,7 @@ seat_groups = ["DFC-MS-RISKPCC students", "Cyber Risk Mgmt & Cmpl MS conc"]
 
   [[programs.requirements]]
   id = "optional-core"
-  label = "2-Optional Core"
+  label = "Optional Core"
   name = "Any three of five"
   type = "choose"
   credits = 9
@@ -76,7 +80,7 @@ seat_groups = ["DFC-MS-RISKPCC students", "Cyber Risk Mgmt & Cmpl MS conc"]
 
   [[programs.requirements]]
   id = "tools"
-  label = "3-Tools"
+  label = "Tools"
   name = "Cybersecurity tools course"
   type = "choose"
   credits = 3
@@ -86,16 +90,16 @@ seat_groups = ["DFC-MS-RISKPCC students", "Cyber Risk Mgmt & Cmpl MS conc"]
 
   [[programs.requirements]]
   id = "capstone"
-  label = "5-Internship / 6-Thesis"
+  label = "Thesis or Internship"
   name = "Thesis or internship project"
   type = "choose"
   credits = 3
   courses = ["CYBR 678", "CYBR 699"]
-  course_labels = { "CYBR 678" = "5-Internship", "CYBR 699" = "6-Thesis" }
+  course_labels = { "CYBR 678" = "Internship", "CYBR 699" = "Thesis" }
 
   [[programs.requirements]]
   id = "electives"
-  label = "4-Elective"
+  label = "Elective"
   name = "Electives"
   type = "choose"
   credits = 9
@@ -115,7 +119,7 @@ seat_groups = ["DFC-MS-HLTHSECPVC students", "Cyber Privacy Hlth Inf MS conc"]
 
   [[programs.requirements]]
   id = "core"
-  label = "1-Core"
+  label = "Core"
   name = "Required courses"
   type = "all"
   credits = 12
@@ -123,7 +127,7 @@ seat_groups = ["DFC-MS-HLTHSECPVC students", "Cyber Privacy Hlth Inf MS conc"]
 
   [[programs.requirements]]
   id = "optional-core"
-  label = "2-Optional Core"
+  label = "Optional Core"
   name = "Any three of five"
   type = "choose"
   credits = 9
@@ -131,7 +135,7 @@ seat_groups = ["DFC-MS-HLTHSECPVC students", "Cyber Privacy Hlth Inf MS conc"]
 
   [[programs.requirements]]
   id = "tools"
-  label = "3-Tools"
+  label = "Tools"
   name = "Cybersecurity tools course"
   type = "choose"
   credits = 3
@@ -141,16 +145,16 @@ seat_groups = ["DFC-MS-HLTHSECPVC students", "Cyber Privacy Hlth Inf MS conc"]
 
   [[programs.requirements]]
   id = "capstone"
-  label = "5-Internship / 6-Thesis"
+  label = "Thesis or Internship"
   name = "Thesis or internship project"
   type = "choose"
   credits = 3
   courses = ["CYBR 678", "CYBR 699"]
-  course_labels = { "CYBR 678" = "5-Internship", "CYBR 699" = "6-Thesis" }
+  course_labels = { "CYBR 678" = "Internship", "CYBR 699" = "Thesis" }
 
   [[programs.requirements]]
   id = "electives"
-  label = "4-Elective"
+  label = "Elective"
   name = "Electives"
   type = "choose"
   credits = 9

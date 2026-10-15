@@ -18,10 +18,10 @@
     <div class="wrap">
       <p class="eyebrow">UAlbany CEHC · MS in Cybersecurity and Risk</p>
       <h1>Course Planner</h1>
-      <p class="lede">See which courses you still need and which sections next term fit you.
-        This is an unofficial advising aid. Confirm everything in the
+      <p class="lede">See which requirements a student still needs and which sections in the coming term fit.
+        This is an unofficial aid for students and advisors. Confirm everything in the
         <a href="https://www.albany.edu/registrar/schedule-classes" target="_blank" rel="noopener noreferrer">Schedule of Classes</a>
-        and with your advisor before you register.</p>
+        and with the advisor before registering.</p>
       <p id="data-status" class="data-status">Loading course data…</p>
       <p id="stale-banner" class="banner banner-warn" hidden></p>
     </div>
@@ -29,30 +29,32 @@
 
   <main class="wrap">
     <section class="panel" aria-labelledby="setup-title">
-      <h2 id="setup-title" class="visually-hidden">Your details</h2>
+      <h2 id="setup-title" class="visually-hidden">Student details</h2>
       <div class="steps">
         <div class="step">
-          <label for="program"><span class="step-num">1</span> Your concentration</label>
+          <label for="program"><span class="step-num">1</span> Student concentration</label>
           <select id="program">
             <option value="">Choose a concentration…</option>
           </select>
         </div>
 
         <div class="step">
-          <label for="term"><span class="step-num">2</span> Term you are planning</label>
-          <select id="term"></select>
+          <label for="term"><span class="step-num">2</span> Term being planned</label>
+          <select id="term">
+            <option value="">Choose a term…</option>
+          </select>
         </div>
 
         <fieldset class="step">
-          <legend><span class="step-num">3</span> Class format you can take</legend>
+          <legend><span class="step-num">3</span> Class formats the student can take</legend>
           <div class="choices">
             <label class="choice"><input type="radio" name="modality" value="online"> Online only</label>
             <label class="choice"><input type="radio" name="modality" value="in_person"> In person or blended</label>
-            <label class="choice"><input type="radio" name="modality" value="any" checked> Online or in person</label>
+            <label class="choice"><input type="radio" name="modality" value="any"> Online or in person</label>
           </div>
           <details class="time-limits">
             <summary>Limit days or times (optional)</summary>
-            <div class="days" role="group" aria-label="Days you can attend">
+            <div class="days" role="group" aria-label="Days the student can attend">
               <label class="choice"><input type="checkbox" name="day" value="M" checked> Mon</label>
               <label class="choice"><input type="checkbox" name="day" value="T" checked> Tue</label>
               <label class="choice"><input type="checkbox" name="day" value="W" checked> Wed</label>
@@ -74,15 +76,17 @@
         </fieldset>
 
         <div class="step step-wide">
-          <label for="history"><span class="step-num">4</span> Paste your course history</label>
-          <p class="hint">Copy your courses with their terms and grades and paste them here. Leave out your name and student ID.
-            Results appear below as soon as you paste. Press Enter to refresh, Shift+Enter for a new line.</p>
+          <label for="history"><span class="step-num">4</span> Paste the student's course history</label>
+          <p class="hint">Copy the course history, for example from the unofficial transcript, and paste it here as is.
+            No formatting is needed. Include terms and grades, but not the student's name or ID.
+            Press Enter or select Show plan (Shift+Enter adds a new line).</p>
           <textarea id="history" rows="9" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"
                     data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false"
                     placeholder="Example:&#10;Fall 2025&#10;3 CYBR545|LEC Prin &amp; Pract of Cyber Security  B+&#10;-- (3) CYBR547|LEC Cybersecurity Risk and Policy  ENRL"></textarea>
-          <p class="privacy"><strong>Private.</strong> Your course history stays in this browser. It is not sent anywhere or saved, and it is gone when you close the page.</p>
+          <p class="privacy"><strong>Private.</strong> The course history stays in this browser. It is not sent anywhere or saved, and it is gone when the page is closed.</p>
+          <div id="form-errors" class="banner banner-error" role="alert" tabindex="-1" hidden></div>
           <div class="actions">
-            <button type="button" id="analyze" class="btn btn-primary">Show my plan</button>
+            <button type="button" id="analyze" class="btn btn-primary">Show plan</button>
             <button type="button" id="clear" class="btn">Clear</button>
           </div>
         </div>

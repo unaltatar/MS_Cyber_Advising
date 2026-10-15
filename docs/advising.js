@@ -18,13 +18,18 @@ const GRADE_TOKEN = /^#?(?:[A-E][+-]?|F|S|U|W|I|Z|V|P|NC|ENRL|IP|NG|-)$/;
 // Courses that need a faculty supervisor; the registrar lists one section per instructor.
 export const SUPERVISED = new Set(["CYBR 578", "CYBR 627", "CYBR 678", "CYBR 699"]);
 
-const TERM_LINE = /^\s*(Winter|Spring|Summer|Fall)\s+(\d{4})\s*$/i;
+// Term headings: "Fall 2025", "Fall 2025 Term", "Fall Term 2025", "2025 Fall Term".
+const TERM_LINE = /^\s*(Winter|Spring|Summer|Fall)\s+(?:Term\s+|Semester\s+)?(\d{4})\b/i;
+const TERM_LINE_YEAR_FIRST = /^\s*(\d{4})\s+(Winter|Spring|Summer|Fall)\b/i;
 // "3 CYBR503|SEM Advanced Networking & Security  A", "-- (3) CYBR549|LEC ... ENRL",
 // "0 (3) AENG102Z|LEC Intro to Creative Writing  W"
 const COURSE_LINE =
-  /^\s*(--|\d+(?:\.\d+)?)?\s*(?:\((\d+(?:\.\d+)?)\))?\s*([A-Z]{3,5})\s?(\d{3})([A-Z]?)\s*\|\s*([A-Z]{2,4})\b\s*(.*)$/;
-// Other layouts: any line with a course code, e.g. "CYBR 503 Advanced Networking 3.00 A".
-const LOOSE_CODE = /\b([A-Z]{3,5})\s?(\d{3})([A-Z]?)\b/;
+  /^\s*(--|\d+(?:\.\d+)?)?\s*(?:\((\d+(?:\.\d+)?)\))?\s*([A-Z]{3,5})\s*(\d{3})([A-Z]?)\s*\|\s*([A-Z]{2,4})\b\s*(.*)$/;
+// Other layouts, such as the unofficial transcript: any line with a course code,
+// e.g. "CYBR  503 Advanced Networking & Security 3.000 3.000 A 12.000".
+const LOOSE_CODE = /\b([A-Z]{3,5})\s*(\d{3})([A-Z]?)\b/;
+
+const titleCase = (s) => `${s[0].toUpperCase()}${s.slice(1).toLowerCase()}`;
 
 function num(s) {
   if (s === undefined || s === "--") return null;
@@ -81,9 +86,11 @@ export function parseTranscript(text) {
   for (const raw of String(text || "").split(/\r?\n/)) {
     const line = raw.replace(/\t/g, " ").trimEnd();
     if (!line.trim()) continue;
-    const t = TERM_LINE.exec(line);
-    if (t) {
-      term = `${t[1][0].toUpperCase()}${t[1].slice(1).toLowerCase()} ${t[2]}`;
+    if (!LOOSE_CODE.test(line)) {
+      const t = TERM_LINE.exec(line);
+      const y = TERM_LINE_YEAR_FIRST.exec(line);
+      if (t) term = `${titleCase(t[1])} ${t[2]}`;
+      else if (y) term = `${titleCase(y[2])} ${y[1]}`;
       continue;
     }
     const m = COURSE_LINE.exec(line);
@@ -106,7 +113,7 @@ export function parseTranscript(text) {
       const title = tokens.filter((tok) => !GRADE_TOKEN.test(tok) && num(tok) === null).join(" ");
       const c = makeCourse({
         subject: loose[1], number: loose[2], suffix: loose[3], title, grade, line,
-        term: inlineTerm ? `${inlineTerm[1]} ${inlineTerm[2]}` : term, earned: credit ?? null, attempted: null,
+        term: inlineTerm ? `${titleCase(inlineTerm[1])} ${inlineTerm[2]}` : term, earned: credit ?? null, attempted: null,
       });
       if (c.status !== "component") courses.push(c);
     }

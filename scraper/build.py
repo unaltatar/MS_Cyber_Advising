@@ -92,6 +92,12 @@ def load_programs(path):
             raise ConfigError(f"{p['id']}: requirements add up to {total}, not {p['total_credits']}")
         if sum(bool(r.get("receives_replaced_credits")) for r in p["requirements"]) != 1:
             raise ConfigError(f"{p['id']}: exactly one requirement must set receives_replaced_credits")
+        order = settings.get("label_order")
+        if order is not None:
+            for r in p["requirements"]:
+                for label in [r["label"], *r.get("course_labels", {}).values()]:
+                    if label not in order:
+                        raise ConfigError(f"{p['id']}.{r['id']}: label {label!r} is not in settings.label_order")
     return cfg
 
 

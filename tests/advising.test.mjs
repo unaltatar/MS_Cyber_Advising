@@ -30,15 +30,15 @@ High School: Example High School
 const RISK = {
   id: "risk", seat_groups: ["RISK students", "Risk conc"], total_credits: 36,
   requirements: [
-    { id: "core", label: "1-Core", name: "Core", type: "all", credits: 12,
+    { id: "core", label: "Core", name: "Core", type: "all", credits: 12,
       slots: [["CYBR 503", "BFOR 525"], ["CYBR 553", "BCYB 644"], ["CYBR 554", "BCYB 645"], ["CYBR 536"]] },
-    { id: "optional-core", label: "2-Optional Core", name: "3 of 5", type: "choose", credits: 9,
+    { id: "optional-core", label: "Optional Core", name: "3 of 5", type: "choose", credits: 9,
       courses: ["CYBR 545", "CYBR 547", "CYBR 549", "CYBR 552", "CINF 585"] },
-    { id: "tools", label: "3-Tools", name: "Tools", type: "choose", credits: 3,
+    { id: "tools", label: "Tools", name: "Tools", type: "choose", credits: 3,
       courses: ["CINF 523", "CYBR 555", "BFOR 615", "BFOR 642", "BFOR 643"] },
-    { id: "capstone", label: "5/6", name: "Capstone", type: "choose", credits: 3,
-      courses: ["CYBR 678", "CYBR 699"], course_labels: { "CYBR 678": "5-Internship", "CYBR 699": "6-Thesis" } },
-    { id: "electives", label: "4-Elective", name: "Electives", type: "choose", credits: 9,
+    { id: "capstone", label: "Thesis or Internship", name: "Capstone", type: "choose", credits: 3,
+      courses: ["CYBR 678", "CYBR 699"], course_labels: { "CYBR 678": "Internship", "CYBR 699": "Thesis" } },
+    { id: "electives", label: "Elective", name: "Electives", type: "choose", credits: 9,
       any_graduate: ["CYBR"], courses: ["BFOR 650"], receives_replaced_credits: true },
   ],
 };
@@ -74,6 +74,26 @@ test("tolerates tabs and single spaces from a different paste", () => {
 test("falls back to any line with a course code", () => {
   const cs = A.parseTranscript("CYBR 536 Info Security Compliance Aud 3.00 A- Spring 2026");
   assert.deepEqual([cs[0].code, cs[0].grade, cs[0].credits, cs[0].term], ["CYBR 536", "A-", 3, "Spring 2026"]);
+});
+
+test("reads an unofficial-transcript style layout", () => {
+  const text = [
+    "Beginning of Graduate Record",
+    "2025 Fall Term",
+    "Course        Description                         Attempted Earned Grade Points",
+    "CYBR  503     Advanced Networking & Security      3.000     3.000  A     12.000",
+    "CYBR  536     Info Security Compliance Aud        3.000     0.000  W      0.000",
+    "Term GPA 4.000   Term Totals 6.000 3.000 12.000",
+    "Spring 2026 Term",
+    "CYBR  545     Prin & Pract of Cyber Security      3.000     0.000         0.000",
+  ].join("\n");
+  const cs = A.parseTranscript(text);
+  assert.deepEqual(cs.map((c) => [c.term, c.code, c.grade, c.status, c.credits]), [
+    ["Fall 2025", "CYBR 503", "A", "completed", 3],
+    ["Fall 2025", "CYBR 536", "W", "no_credit", 3],
+    ["Spring 2026", "CYBR 545", "", "in_progress", 3],
+  ]);
+  assert.equal(cs[0].title, "Advanced Networking & Security");
 });
 
 test("graduate grade rules follow the Graduate Bulletin", () => {
@@ -145,12 +165,12 @@ test("section fit is personal: taken, blocked, and which requirement it fills", 
   const ev = A.evaluate(RISK, A.parseTranscript(SYNTHETIC), OPTS);
   assert.equal(A.sectionFit(RISK, ev, section({ code: "CYBR 545" })).reason, "taken");
   assert.equal(A.sectionFit(RISK, ev, section({ code: "CYBR 553" })).reason, "blocked");
-  assert.equal(A.sectionFit(RISK, ev, section({ code: "CYBR 554" })).label, "1-Core");
-  assert.equal(A.sectionFit(RISK, ev, section({ code: "CYBR 549" })).label, "2-Optional Core");
-  assert.equal(A.sectionFit(RISK, ev, section({ code: "CYBR 699" })).label, "6-Thesis");
+  assert.equal(A.sectionFit(RISK, ev, section({ code: "CYBR 554" })).label, "Core");
+  assert.equal(A.sectionFit(RISK, ev, section({ code: "CYBR 549" })).label, "Optional Core");
+  assert.equal(A.sectionFit(RISK, ev, section({ code: "CYBR 699" })).label, "Thesis");
   // Tools is met, so another CINF 523 module is not needed.
   assert.equal(A.sectionFit(RISK, ev, section({ code: "CINF 523" })).reason, "not_needed");
-  assert.equal(A.programLabel(RISK, "CYBR 547"), "2-Optional Core");
+  assert.equal(A.programLabel(RISK, "CYBR 547"), "Optional Core");
   assert.equal(A.programLabel(RISK, "HHPM 669"), null);
 });
 
@@ -191,7 +211,7 @@ test("left-over courses: extra when a full requirement would take them, otherwis
   ].join("\n");
   const narrow = { ...RISK, requirements: RISK.requirements.filter((r) => r.id !== "electives") };
   const program = { ...narrow, requirements: [...narrow.requirements,
-    { id: "electives", label: "4-Elective", name: "Electives", type: "choose", credits: 0, courses: [], any_graduate: ["CYBR"], receives_replaced_credits: true }] };
+    { id: "electives", label: "Elective", name: "Electives", type: "choose", credits: 0, courses: [], any_graduate: ["CYBR"], receives_replaced_credits: true }] };
   const ev = A.evaluate(program, A.parseTranscript(history), OPTS);
   const left = Object.fromEntries(ev.unapplied.map((u) => [u.course.code, u.extra]));
   assert.deepEqual(left, { "CYBR 552": true, "HHPM 525": false });
