@@ -1,0 +1,45 @@
+# Fetch the Schedule of Classes, build the data files, and publish the site.
+# If any test or validation fails, nothing is deployed and the last good site stays up.
+name: Update data and publish site
+
+on:
+  schedule:
+    - cron: "23 */4 * * *" # every 4 hours; GitHub may start scheduled runs late
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Test
+        run: |
+          python3 -m unittest discover -s tests
+          node --test tests/
+      - name: Fetch schedule and build data
+        run: python3 -m scraper build --programs programs.toml --out docs/data
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: docs
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

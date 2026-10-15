@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- The page may only load its own files and may not send data anywhere else. -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="description" content="Course planner for UAlbany MS in Cybersecurity and Risk students and advisors.">
+  <title>MS Cyber Course Planner</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2346166b'/%3E%3Cpath d='M9 11h14M9 16h14M9 21h9' stroke='%23eeb211' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <p class="eyebrow">UAlbany CEHC · MS in Cybersecurity and Risk</p>
+      <h1>Course Planner</h1>
+      <p class="lede">See which courses you still need and which sections next term fit you.
+        This is an unofficial advising aid. Confirm everything in the
+        <a href="https://www.albany.edu/registrar/schedule-classes" target="_blank" rel="noopener noreferrer">Schedule of Classes</a>
+        and with your advisor before you register.</p>
+      <p id="data-status" class="data-status">Loading course data…</p>
+      <p id="stale-banner" class="banner banner-warn" hidden></p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="panel" aria-labelledby="setup-title">
+      <h2 id="setup-title" class="visually-hidden">Your details</h2>
+      <div class="steps">
+        <div class="step">
+          <label for="program"><span class="step-num">1</span> Your concentration</label>
+          <select id="program">
+            <option value="">Choose a concentration…</option>
+          </select>
+        </div>
+
+        <div class="step">
+          <label for="term"><span class="step-num">2</span> Term you are planning</label>
+          <select id="term"></select>
+        </div>
+
+        <fieldset class="step">
+          <legend><span class="step-num">3</span> Class format you can take</legend>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="modality" value="online"> Online only</label>
+            <label class="choice"><input type="radio" name="modality" value="in_person"> In person or blended</label>
+            <label class="choice"><input type="radio" name="modality" value="any" checked> Online or in person</label>
+          </div>
+          <details class="time-limits">
+            <summary>Limit days or times (optional)</summary>
+            <div class="days" role="group" aria-label="Days you can attend">
+              <label class="choice"><input type="checkbox" name="day" value="M" checked> Mon</label>
+              <label class="choice"><input type="checkbox" name="day" value="T" checked> Tue</label>
+              <label class="choice"><input type="checkbox" name="day" value="W" checked> Wed</label>
+              <label class="choice"><input type="checkbox" name="day" value="TH" checked> Thu</label>
+              <label class="choice"><input type="checkbox" name="day" value="F" checked> Fri</label>
+            </div>
+            <label for="earliest" class="inline-label">No classes starting before</label>
+            <select id="earliest">
+              <option value="">Any time</option>
+              <option value="12:00">12:00 PM</option>
+              <option value="15:00">3:00 PM</option>
+              <option value="16:00">4:00 PM</option>
+              <option value="16:30">4:30 PM</option>
+              <option value="17:00">5:00 PM</option>
+              <option value="18:00">6:00 PM</option>
+            </select>
+            <p class="hint">Asynchronous online courses have no meeting time, so they always pass this filter.</p>
+          </details>
+        </fieldset>
+
+        <div class="step step-wide">
+          <label for="history"><span class="step-num">4</span> Paste your course history</label>
+          <p class="hint">Copy your courses with their terms and grades and paste them here. Leave out your name and student ID.
+            Results appear below as soon as you paste. Press Enter to refresh, Shift+Enter for a new line.</p>
+          <textarea id="history" rows="9" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"
+                    data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false"
+                    placeholder="Example:&#10;Fall 2025&#10;3 CYBR545|LEC Prin &amp; Pract of Cyber Security  B+&#10;-- (3) CYBR547|LEC Cybersecurity Risk and Policy  ENRL"></textarea>
+          <p class="privacy"><strong>Private.</strong> Your course history stays in this browser. It is not sent anywhere or saved, and it is gone when you close the page.</p>
+          <div class="actions">
+            <button type="button" id="analyze" class="btn btn-primary">Show my plan</button>
+            <button type="button" id="clear" class="btn">Clear</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div id="results" aria-live="polite"></div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>Requirements follow the CEHC program sheets. Grade rules follow the
+        <a href="https://www.albany.edu/graduate-bulletin/regulations-and-degree-requirements.php" target="_blank" rel="noopener noreferrer">UAlbany Graduate Bulletin</a>.
+        Seat counts are a snapshot and can change at any time.</p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,155 @@
+# Program requirements for the MS Cyber advising page.
+#
+# Edit this file to change what the page checks. Pushing a change to GitHub
+# re-runs the data workflow, which validates this file and republishes the site.
+#
+# Course codes are written "SUBJ NNN". Requirements are filled in the order they
+# appear in each program, so keep the catch-all electives last.
+#
+# Requirement types:
+#   all    - every slot must be filled; a slot lists interchangeable courses.
+#   choose - earn `credits` from `courses` (and, if set, any graduate course in
+#            the `any_graduate` subjects).
+
+[settings]
+# Courses that count every time they are taken (different modules or topics).
+repeatable = ["CINF 523", "CYBR 699", "CYBR 678", "HHPM 669"]
+
+# Graduate courses that cannot be taken once the student has credit for one of
+# the listed courses (usually the 400-level undergraduate version). Seeded from
+# the October 2026 course descriptions and the program sheets. The build adds
+# any new rule it finds in current course descriptions.
+#
+# Rule applied on the page: if a course that fills a required slot is ruled out,
+# the slot counts as met and its 3 credits move to electives. In a "choose"
+# list, a ruled-out course is simply not offered as an option.
+[exclusions]
+"CYBR 503" = ["CYBR 403"]
+"CYBR 536" = ["CYBR 436"]
+"CYBR 545" = ["CYBR 445", "CEHC 445"]
+"CYBR 547" = ["CYBR 447"]
+"CYBR 549" = ["CYBR 449", "CEHC 449", "RPAD 449"]
+"CYBR 550" = ["CYBR 450"]
+"CYBR 552" = ["CYBR 452", "CYBR 551"]
+"CYBR 553" = ["CYBR 453"]
+"CYBR 554" = ["CYBR 454"]
+"CYBR 555" = ["CYBR 455"]
+"CYBR 569" = ["CYBR 469", "CEHC 469", "RPAD 469"]
+"CYBR 571" = ["CYBR 471"]
+"BFOR 615" = ["BFOR 415", "CYBR 540"]
+
+
+[[programs]]
+id = "risk"
+name = "Cyber Risk Management & Compliance"
+degree = "MS in Cybersecurity and Risk"
+source = "CEHC program map, Fall 2023 (5-13-2023)"
+total_credits = 36
+# Reserved-seat groups in the Schedule of Classes that this program's students belong to.
+seat_groups = ["DFC-MS-RISKPCC students", "Cyber Risk Mgmt & Cmpl MS conc"]
+
+  [[programs.requirements]]
+  id = "core"
+  label = "1-Core"
+  name = "Core courses"
+  type = "all"
+  credits = 12
+  slots = [
+    ["CYBR 503", "BFOR 525"],
+    ["CYBR 553", "BCYB 644"],
+    ["CYBR 554", "BCYB 645"],
+    ["CYBR 536"],
+  ]
+
+  [[programs.requirements]]
+  id = "optional-core"
+  label = "2-Optional Core"
+  name = "Any three of five"
+  type = "choose"
+  credits = 9
+  courses = ["CYBR 545", "CYBR 547", "CYBR 549", "CYBR 552", "CINF 585"]
+
+  [[programs.requirements]]
+  id = "tools"
+  label = "3-Tools"
+  name = "Cybersecurity tools course"
+  type = "choose"
+  credits = 3
+  # The colleague's Spring 2027 sheet also lists CYBR 555 here; add it if that is current policy.
+  courses = ["CINF 523", "BFOR 615", "BFOR 642", "BFOR 643"]
+  note = "CINF 523 is taken as three 1-credit modules, as advised. BFOR 615 cannot be taken after BFOR 415 or CYBR 540."
+
+  [[programs.requirements]]
+  id = "capstone"
+  label = "5-Internship / 6-Thesis"
+  name = "Thesis or internship project"
+  type = "choose"
+  credits = 3
+  courses = ["CYBR 678", "CYBR 699"]
+  course_labels = { "CYBR 678" = "5-Internship", "CYBR 699" = "6-Thesis" }
+
+  [[programs.requirements]]
+  id = "electives"
+  label = "4-Elective"
+  name = "Electives"
+  type = "choose"
+  credits = 9
+  any_graduate = ["CYBR"]
+  # BFOR 602 Cyberlaw & Ethics is now offered as BCYB 602.
+  courses = ["BCYB 644", "BCYB 602", "BFOR 602", "BFOR 650"]
+  receives_waived_credits = true
+  note = "Any other CYBR graduate course. CYBR 678 or CYBR 699 can count here with advisement."
+
+
+[[programs]]
+id = "health"
+name = "Cybersecurity & Privacy of Health Information"
+degree = "MS in Cybersecurity and Risk"
+source = "CEHC advisement worksheet (5-1-2023)"
+total_credits = 36
+seat_groups = ["DFC-MS-HLTHSECPVC students", "Cyber Privacy Hlth Inf MS conc"]
+
+  [[programs.requirements]]
+  id = "core"
+  label = "1-Core"
+  name = "Required courses"
+  type = "all"
+  credits = 12
+  slots = [["CYBR 503"], ["CYBR 553"], ["HHPM 580"], ["HHPM 669"]]
+
+  [[programs.requirements]]
+  id = "optional-core"
+  label = "2-Optional Core"
+  name = "Any three of five"
+  type = "choose"
+  credits = 9
+  courses = ["CYBR 536", "CYBR 545", "CYBR 547", "CYBR 552", "BFOR 650"]
+
+  [[programs.requirements]]
+  id = "tools"
+  label = "3-Tools"
+  name = "Cybersecurity tools course"
+  type = "choose"
+  credits = 3
+  courses = ["CINF 523", "BFOR 615", "BFOR 642", "BFOR 643"]
+  note = "CINF 523 is taken as three 1-credit modules. BFOR 615 cannot be taken after BFOR 415 or CYBR 540."
+
+  [[programs.requirements]]
+  id = "capstone"
+  label = "5-Internship / 6-Thesis"
+  name = "Thesis or internship project"
+  type = "choose"
+  credits = 3
+  courses = ["CYBR 678", "CYBR 699"]
+  course_labels = { "CYBR 678" = "5-Internship", "CYBR 699" = "6-Thesis" }
+
+  [[programs.requirements]]
+  id = "electives"
+  label = "4-Elective"
+  name = "Electives"
+  type = "choose"
+  credits = 9
+  any_graduate = ["CYBR"]
+  courses = []
+  receives_waived_credits = true
+  note = "Any CYBR graduate course, for example CYBR 540, 550 or 554."
