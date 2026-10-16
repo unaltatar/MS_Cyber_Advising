@@ -233,6 +233,15 @@ test("CYBR 578 and CYBR 627 count only as electives, never toward thesis or inte
   assert.equal(A.sectionFit(RISK, full, section({ code: "CYBR 678" })).label, "Internship");
 });
 
+test("a new student with no courses needs every requirement and is offered core sections", () => {
+  const ev = A.evaluate(RISK, [], OPTS);
+  assert.deepEqual([ev.totals.done, ev.totals.inProgress, ev.totals.remaining, ev.gpa], [0, 0, 36, null]);
+  assert.equal(ev.warnings.length, 0);
+  assert.ok(ev.requirements.every((r) => r.status === "open"));
+  assert.equal(A.sectionFit(RISK, ev, section({ code: "CYBR 503" })).label, "Core");
+  assert.equal(A.sectionFit(RISK, ev, section({ code: "CINF 523" })).label, "Tools");
+});
+
 test("terms sort chronologically", () => {
   const labels = ["Summer 2026", "Spring 2027", "Fall 2026", "Winter 2027"];
   assert.deepEqual(labels.sort((a, b) => A.termKey(b) - A.termKey(a)), ["Spring 2027", "Winter 2027", "Fall 2026", "Summer 2026"]);

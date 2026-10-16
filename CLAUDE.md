@@ -66,6 +66,7 @@ Always name the Node test file. The CI runner's Node treats `node --test tests/`
   - Supervised courses are shown as one row per course. That changes only the display, never which requirement a course fills.
 - CINF 523 is three 1-credit modules and is repeatable. If the student already has a module, the page reminds them to check that the new topic is different.
 - Old CEHC and RPAD codes are retired, so there are no code aliases.
+- "New student" (step 4) plans with an empty history: every requirement open, no history panel. The textarea is disabled, not cleared. A student with related 400-level undergraduate courses should paste the history instead, because of the 400/500 exclusions.
 
 ## Writing
 

@@ -381,10 +381,11 @@ function render() {
   }
   const prefs = prefsFromForm();
   const text = $("#history").value;
+  const isNew = $("#new-student").checked;
 
-  if (text.trim() && prefs.modality) {
-    const courses = A.parseTranscript(text);
-    if (!courses.length) {
+  if ((isNew || text.trim()) && prefs.modality) {
+    const courses = isNew ? [] : A.parseTranscript(text);
+    if (!isNew && !courses.length) {
       out.append(h("section", { class: "panel" }, h("p", { class: "banner banner-warn" },
         "No courses were recognized in the pasted text. Paste lines that include the course code, for example ",
         h("code", null, "3 CYBR503|SEM Advanced Networking & Security  A"), ".")));
@@ -392,6 +393,7 @@ function render() {
       const ev = A.evaluate(program, courses, { exclusions, repeatable: cfg.settings.repeatable, unavailable: schedule.restricted_codes || [] });
       out.append(h("section", { class: "panel" },
         h("h3", null, `Student progress: ${program.name}`),
+        isNew ? h("p", { class: "hint" }, "New student with no courses taken yet, so every requirement is still needed.") : null,
         summary(program, ev),
         ev.warnings.length ? h("ul", { class: "warnings" }, ev.warnings.map((w) => h("li", null, w.text))) : null,
         h("div", { class: "reqs" }, [...ev.requirements].sort((a, b) => labelRank(a.label) - labelRank(b.label)).map((r) => requirementCard(r, ev))),
@@ -400,7 +402,7 @@ function render() {
         leftoverNote(ev.unapplied.filter((u) => !u.extra),
           "Graduate courses that do not count toward this concentration: ")));
       out.append(recommendations(program, ev, term, prefs));
-      out.append(coursesRead(courses, ev));
+      if (!isNew) out.append(coursesRead(courses, ev));
     }
   }
   out.append(programTable(program, term, prefs));
@@ -414,7 +416,9 @@ function missingSteps() {
   if (!document.querySelector("input[name=modality]:checked")) {
     missing.push({ el: document.querySelector("input[name=modality]"), text: "Choose the class formats the student can take (step 3)." });
   }
-  if (!$("#history").value.trim()) missing.push({ el: $("#history"), text: "Paste the student's course history (step 4)." });
+  if (!$("#new-student").checked && !$("#history").value.trim()) {
+    missing.push({ el: $("#history"), text: "Paste the student's course history, or check New student if no courses have been taken yet (step 4)." });
+  }
   return missing;
 }
 
@@ -480,6 +484,16 @@ async function init() {
     el.addEventListener("change", refresh);
   }
   const history = $("#history");
+  const newStudent = $("#new-student");
+  // A new student has no history to paste. The textarea is disabled, not cleared, so a stray click loses nothing.
+  const syncNewStudent = () => {
+    history.disabled = newStudent.checked;
+  };
+  newStudent.addEventListener("change", () => {
+    syncNewStudent();
+    refresh();
+  });
+  syncNewStudent();
   history.addEventListener("input", renderSoon);
   history.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
@@ -490,6 +504,8 @@ async function init() {
   $("#analyze").addEventListener("click", submit);
   $("#clear").addEventListener("click", () => {
     history.value = "";
+    newStudent.checked = false;
+    syncNewStudent();
     refresh();
     history.focus();
   });

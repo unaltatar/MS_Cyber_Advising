@@ -4,7 +4,8 @@ A course planner for UAlbany MS in Cybersecurity and Risk students and their
 advisors: https://unaltatar.github.io/MS_Cyber_Advising/
 
 A student picks a concentration, a term and the class formats they can take,
-then pastes their course history. The page shows which requirements are done,
+then pastes their course history, or checks "New student" if they have not taken
+any courses yet. The page shows which requirements are done,
 in progress or still needed, and which sections in the chosen term fill them,
 with times, instructors and the seats actually open to that student. It also
 shows the program-wide list of sections in the advising-sheet layout.

@@ -139,6 +139,8 @@ select:focus, textarea:focus, button:focus-visible, summary:focus-visible {
   border-color: var(--accent);
 }
 textarea { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 0.85rem; resize: vertical; }
+textarea:disabled { background: var(--bg); color: var(--muted); cursor: not-allowed; }
+.step > label.new-student { display: inline-flex; margin-bottom: 2px; }
 
 .choices, .days { display: flex; flex-wrap: wrap; gap: 6px 16px; }
 .choice { display: inline-flex; align-items: center; gap: 6px; font-weight: 400; cursor: pointer; }
