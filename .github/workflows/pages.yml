@@ -34,6 +34,15 @@ jobs:
           node --test tests/advising.test.mjs
       - name: Fetch schedule and build data
         run: python3 -m scraper build --programs programs.toml --out docs/data
+      # Pages lets browsers cache each file for 10 minutes, so after a deploy a reload could pair
+      # the new index.html with the old app.js. Tag the code files with this commit so they
+      # reload together. Hourly data-only runs keep the same tag, so caching still works.
+      - name: Tag code files with the commit
+        run: |
+          v="${GITHUB_SHA::7}"
+          sed -i -e "s|href=\"style.css\"|href=\"style.css?v=$v\"|" -e "s|src=\"app.js\"|src=\"app.js?v=$v\"|" docs/index.html
+          sed -i "s|from \"./advising.js\"|from \"./advising.js?v=$v\"|" docs/app.js
+          grep -q "style.css?v=$v" docs/index.html && grep -q "app.js?v=$v" docs/index.html && grep -q "advising.js?v=$v" docs/app.js
       - uses: actions/upload-pages-artifact@v5
         with:
           path: docs

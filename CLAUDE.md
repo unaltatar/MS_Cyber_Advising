@@ -25,6 +25,7 @@ Always name the Node test file. The CI runner's Node treats `node --test tests/`
 - `tests/`: `test_soc.py` (unittest) and `advising.test.mjs` (node:test).
 - `.github/workflows/pages.yml`: hourly, on push and on demand: test, build, deploy to Pages. Any failure means no deploy, so the last good site stays up.
   - Data is never committed.
+  - At deploy, `style.css`, `app.js` and the `advising.js` import are tagged `?v=<commit>` so a reload never mixes old and new code (Pages caches files for 10 minutes). A new file the page loads must be added to that step and its grep.
   - A `keepalive` job commits `.github/keepalive` when the newest commit is over 30 days old, because GitHub disables scheduled runs after 60 quiet days.
   - The bot may have pushed, so run `git pull` before pushing.
 
