@@ -130,9 +130,10 @@ function requirementCard(r, ev) {
   const items = [];
   for (const c of r.applied) {
     items.push(h("li", null,
-      h("strong", null, c.code), ` ${c.title} `,
+      h("strong", null, c.code), c.listedAs ? h("span", { class: "muted" }, ` (listed as ${c.listedAs})`) : null, ` ${c.title} `,
       h("span", { class: "muted" }, `${c.term}${c.grade && c.status === "completed" ? `, ${c.grade}` : ""}`),
-      c.status === "in_progress" ? h("span", { class: "chip chip-progress" }, "In progress") : null));
+      c.status === "in_progress" ? h("span", { class: "chip chip-progress" }, "In progress") : null,
+      legacyNote(c.code) ? h("span", { class: "chip chip-progress" }, "Advisor check") : null));
   }
   for (const x of r.replaced) {
     if (x.deficit) {
@@ -144,7 +145,7 @@ function requirementCard(r, ev) {
         h("strong", null, x.by.code), ` (${x.by.term || "earlier"}). One more elective is required instead.`));
     }
   }
-  for (const b of r.blockedOptions) {
+  for (const b of r.remaining > 0 ? r.blockedOptions : []) {
     items.push(h("li", { class: "blocked" },
       h("strong", null, b.code), ": not available because of credit for ",
       h("strong", null, b.by.code), ` (${b.by.term || "earlier"}). Choose another course from this list.`));
@@ -181,6 +182,9 @@ function repeatNote(ev, s) {
   return h("div", { class: "prereq" },
     `Already has ${before.length} ${s.code} module${before.length === 1 ? "" : "s"} (${when}). Check that this topic is different.`);
 }
+
+// Courses from an earlier bulletin that count only with the advisor's confirmation.
+const legacyNote = (code) => (cfg.settings.legacy_courses || {})[code];
 
 // Advising note for a course, from settings.course_notes in programs.toml.
 function courseNote(code) {
@@ -290,7 +294,10 @@ function coursesRead(courses, ev) {
   const counted = new Set(ev.attempts);
   const leftover = new Map(ev.unapplied.map((u) => [u.course, u.extra]));
   const howItCounts = (c) => {
-    if (appliedTo.has(c)) return `${c.status === "in_progress" ? "In progress toward" : "Counts toward"} ${appliedTo.get(c)}`;
+    const as = c.listedAs ? ` (as ${c.code})` : "";
+    if (appliedTo.has(c)) return `${c.status === "in_progress" ? "In progress toward" : "Counts toward"} ${appliedTo.get(c)}${as}`;
+    const overlap = ev.overlaps.get(c.code);
+    if (overlap && (c.status === "completed" || c.status === "in_progress")) return `Not counted: credit for ${overlap.code} already`;
     if (blockers.has(c)) return `Rules out ${blockers.get(c)}`;
     if (!c.graduate) return "Undergraduate";
     if (c.status === "no_credit") return `No graduate credit (${c.grade})`;
@@ -305,7 +312,7 @@ function coursesRead(courses, ev) {
     for (const c of courses.filter((x) => x.term === t)) {
       rows.push(h("tr", { class: c.graduate ? "" : "undergrad" },
         h("td", { class: "nowrap" }, c.term || "-"),
-        h("td", { class: "nowrap" }, c.code + c.suffix),
+        h("td", { class: "nowrap" }, (c.listedAs || c.code) + c.suffix),
         h("td", null, c.title),
         h("td", null, c.credits),
         h("td", null, c.status === "in_progress" ? "Enrolled" : c.grade || "-"),
@@ -390,7 +397,10 @@ function render() {
         "No courses were recognized in the pasted text. Paste lines that include the course code, for example ",
         h("code", null, "3 CYBR503|SEM Advanced Networking & Security  A"), ".")));
     } else {
-      const ev = A.evaluate(program, courses, { exclusions, repeatable: cfg.settings.repeatable, unavailable: schedule.restricted_codes || [] });
+      const ev = A.evaluate(program, courses, {
+        exclusions, repeatable: cfg.settings.repeatable, unavailable: schedule.restricted_codes || [],
+        aliases: cfg.aliases || {}, legacy: cfg.settings.legacy_courses || {},
+      });
       out.append(h("section", { class: "panel" },
         h("h3", null, `Student progress: ${program.name}`),
         isNew ? h("p", { class: "hint" }, "New student with no courses taken yet, so every requirement is still needed.") : null,
@@ -402,7 +412,7 @@ function render() {
         leftoverNote(ev.unapplied.filter((u) => !u.extra),
           "Graduate courses that do not count toward this concentration: ")));
       out.append(recommendations(program, ev, term, prefs));
-      if (!isNew) out.append(coursesRead(courses, ev));
+      if (!isNew) out.append(coursesRead(ev.courses, ev));
     }
   }
   out.append(programTable(program, term, prefs));

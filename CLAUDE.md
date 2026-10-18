@@ -51,22 +51,26 @@ Always name the Node test file. The CI runner's Node treats `node --test tests/`
 
 ## Advising rules (confirmed with the maintainer, October 2026)
 
+Requirements follow the 2026-27 Graduate Bulletin (cybersecurity-risk-ms.php); the rules below are the confirmed additions.
+
 - Grades follow the Graduate Bulletin:
-  - C- and below, I, U, W, Z and V earn no graduate credit.
+  - C- and below, I, U, W, Z, V and N (audit) earn no graduate credit. S and M pass; R (thesis research) is in progress.
   - B-, C+ and C count only if the degree GPA stays at 3.0 or higher.
   - For a repeated course, the higher grade counts.
 - 400/500 exclusions: the 500-level course is never counted as taken.
   - In a required slot: show a note, and add one extra elective (+3 credits).
   - In a choose list: show a note, and the student picks another course.
-- Sections whose description says "Graduate Business Students Only" are hidden. Courses with no open section are dropped from "choose from" lists.
+- Sections whose description says "Graduate Business Students Only" anywhere (not only in the prerequisite) are hidden. Courses with no section open to CEHC students in any listed term are dropped from "choose from" lists, but still count if taken.
 - A concentration's old code (DFC-MS-RISKPCC) and new name (Cyber Risk Mgmt & Cmpl MS conc) are one program, so their seat pools are added. The Health pair works the same way.
-- CYBR 555 is a Tools course.
+- CYBR 540 and CYBR 555 are Tools courses.
 - Only CYBR 678 and CYBR 699 fill Thesis or Internship.
   - CYBR 578 (an internship with no credit minimum) and CYBR 627 count only as electives.
   - Per-course notes live in `settings.course_notes`.
   - Supervised courses are shown as one row per course. That changes only the display, never which requirement a course fills.
 - CINF 523 is three 1-credit modules and is repeatable. If the student already has a module, the page reminds them to check that the new topic is different.
-- Old CEHC and RPAD codes are retired, so there are no code aliases.
+- Cross-listed codes with the same title count as the CYBR course (`[aliases]`: CEHC, RPAD, CINF). Same number is not enough: CEHC 553, 554 and 555 are different courses.
+- Pairs block each other both ways (core alternatives 503/BFOR 525, 553/BCYB 644, 554/BCYB 645; 551/552; 540/BFOR 615). If both courses of any exclusion are on the transcript, the earlier counts and the later is flagged. This applies to 400/500 pairs too.
+- HHPM 580 and HHPM 669 (2025-26 Health core) are `settings.legacy_courses`: they count if taken, are flagged for the advisor, and are never fetched or recommended.
 - "New student" (step 4) plans with an empty history: every requirement open, no history panel. The textarea is disabled, not cleared. A student with related 400-level undergraduate courses should paste the history instead, because of the 400/500 exclusions.
 
 ## Writing

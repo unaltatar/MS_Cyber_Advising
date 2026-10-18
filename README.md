@@ -49,16 +49,31 @@ validates every record.
 
 ## Rules applied
 
-- Grades follow the Graduate Bulletin: C- and below, I, U, W, Z and V earn no
-  graduate credit; B-, C+ and C count only if the degree average stays at 3.0.
-  For a repeated course the higher grade counts.
+Requirements follow the 2026-27 Graduate Bulletin, with the advising decisions
+below (confirmed October 2026).
+
+- Grades follow the Graduate Bulletin: C- and below, I, U, V, W, Z and N (audit)
+  earn no graduate credit; B-, C+ and C count only if the degree average stays at
+  3.0. S and M count. R (thesis research) counts once the thesis is accepted. For a
+  repeated course the higher grade counts.
 - A graduate course cannot be taken after credit for its listed equivalent
   (usually the 400-level version). It is never counted as taken. If it is a
   required course, the page notes it and the student takes one more elective
   instead. In a "choose" list the page notes it and the student picks another.
+- Some pairs block each other both ways: CYBR 503 and BFOR 525, CYBR 553 and
+  BCYB 644, CYBR 554 and BCYB 645, CYBR 551 and CYBR 552, CYBR 540 and BFOR 615.
+  If a transcript has both courses of a blocked pair, the earlier one counts and
+  the page flags the other for the advisor.
+- Cross-listed codes with the same title (CEHC 547, RPAD 549, CINF 553 and
+  others) count as the CYBR course. A matching number alone is not enough:
+  CEHC 553 is a different course from CYBR 553.
+- Health core is CYBR 503 or BFOR 525, CYBR 553 or BCYB 644, HEPI 514 (HHPM 514)
+  and HSTA 601. HHPM 580 and HHPM 669, the 2025-26 Health core, still count if
+  already taken, but the page flags them for the advisor and never recommends them.
+- CYBR 540 and CYBR 555 count as Tools courses.
 - Sections whose description says "Graduate Business Students Only" are not
-  shown, because CEHC students cannot register for them. Courses with no open
-  section are also left out of the "choose from" lists.
+  shown, because CEHC students cannot register for them. Courses with no section
+  open to CEHC students in any listed term are left out of the "choose from" lists.
 - Seats for a student are the open seats plus the seats reserved for their
   concentration. Each concentration appears under its old code and its new
   name; both pools are counted.

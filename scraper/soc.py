@@ -321,6 +321,8 @@ def to_section(rec):
         "seats": parse_seats(rec["Special Restriction"]),
         "excluded_by": excluded_by(description, code),
         "prerequisite": prerequisite(description),
+        # Used by the build to spot enrollment notes outside the prerequisite; not published.
+        "description": description,
     }
 
 

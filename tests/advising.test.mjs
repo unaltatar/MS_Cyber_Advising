@@ -103,6 +103,12 @@ test("graduate grade rules follow the Graduate Bulletin", () => {
   assert.equal(A.gradeStatus("I", true), "no_credit");
   assert.equal(A.gradeStatus("#S", true), "completed");
   assert.equal(A.gradeStatus("ENRL", true), "in_progress");
+  // M and S pass, R is thesis research still in progress, N is an audit.
+  assert.equal(A.gradeStatus("M", true), "completed");
+  assert.equal(A.gradeStatus("R", true), "in_progress");
+  assert.equal(A.gradeStatus("N", true), "no_credit");
+  const cs = A.parseTranscript("Fall 2025\n3 CYBR699|THS Master's Thesis  R\n0 (3) CYBR550|LEC Cybersecurity Policy  N");
+  assert.deepEqual(cs.map((c) => [c.code, c.grade, c.status]), [["CYBR 699", "R", "in_progress"], ["CYBR 550", "N", "no_credit"]]);
 });
 
 test("evaluates requirements: best repeat, replaced course, modules, in-progress", () => {
@@ -240,6 +246,59 @@ test("a new student with no courses needs every requirement and is offered core 
   assert.ok(ev.requirements.every((r) => r.status === "open"));
   assert.equal(A.sectionFit(RISK, ev, section({ code: "CYBR 503" })).label, "Core");
   assert.equal(A.sectionFit(RISK, ev, section({ code: "CINF 523" })).label, "Tools");
+});
+
+test("cross-listed codes count as the CYBR course; the same number alone is not enough", () => {
+  const history = "Fall 2024\n3 CEHC547|LEC Cybersecurity Risk and Policy  A\n3 CEHC553|LEC Topics in Homeland Security  A";
+  const ev = A.evaluate(RISK, A.parseTranscript(history), { ...OPTS, aliases: { "CEHC 547": "CYBR 547" } });
+  const opt = ev.requirements.find((r) => r.id === "optional-core");
+  assert.deepEqual(opt.applied.map((c) => [c.code, c.listedAs]), [["CYBR 547", "CEHC 547"]]);
+  assert.ok(ev.courses.some((c) => c.code === "CEHC 553" && !c.listedAs));
+  assert.equal(A.sectionFit(RISK, ev, section({ code: "CYBR 547" })).reason, "taken");
+});
+
+test("a student cannot count both courses of a pair: the earlier one counts, the later one is flagged", () => {
+  const exclusions = { ...OPTS.exclusions, "CYBR 503": ["BFOR 525"], "BFOR 525": ["CYBR 503"], "CYBR 551": ["CYBR 552"], "CYBR 552": ["CYBR 551"] };
+  const history = [
+    "Spring 2026",
+    "-- (3) CYBR503|SEM Advanced Networking & Security  ENRL",
+    "3 CYBR551|LEC Cyber Incident Response  A",
+    "Fall 2025",
+    "3 BFOR525|LEC Advanced Networking  A",
+    "3 CYBR552|LEC Computer and Network Security  A",
+  ].join("\n");
+  const ev = A.evaluate(RISK, A.parseTranscript(history), { ...OPTS, exclusions });
+  const used = ev.requirements.flatMap((r) => r.applied.map((c) => `${r.id}:${c.code}`));
+  assert.deepEqual(used.sort(), ["core:BFOR 525", "optional-core:CYBR 552"]);
+  assert.deepEqual([...ev.overlaps].map(([code, by]) => `${code} by ${by.code}`).sort(), ["CYBR 503 by BFOR 525", "CYBR 551 by CYBR 552"]);
+  assert.deepEqual(ev.warnings.filter((w) => w.kind === "overlap").map((w) => w.course.code).sort(), ["CYBR 503", "CYBR 551"]);
+  // Neither dropped course is offered again.
+  assert.equal(A.sectionFit(RISK, ev, section({ code: "CYBR 503" })).reason, "blocked");
+  assert.equal(A.sectionFit(RISK, ev, section({ code: "CYBR 551" })).reason, "blocked");
+});
+
+test("a 500-level course taken after its 400-level version does not count", () => {
+  const history = "Fall 2023\n3 CYBR453|LEC Information Security & Privacy  A\nFall 2025\n3 CYBR553|LEC Information Security and Privacy  A";
+  const ev = A.evaluate(RISK, A.parseTranscript(history), OPTS);
+  assert.ok(!ev.requirements.some((r) => r.applied.some((c) => c.code === "CYBR 553")));
+  assert.deepEqual(ev.requirements[0].replaced.map((x) => `${x.code} by ${x.by.code}`), ["CYBR 553 by CYBR 453"]);
+  assert.ok(ev.warnings.some((w) => w.kind === "overlap" && w.course.code === "CYBR 553"));
+});
+
+test("legacy Health core courses count but are flagged for the advisor and never recommended", () => {
+  const program = { id: "h", requirements: [
+    { id: "core", label: "Core", name: "Core", type: "all", credits: 6, slots: [["HEPI 514", "HHPM 514", "HHPM 580"], ["HSTA 601", "HHPM 669"]] },
+    { id: "electives", label: "Elective", name: "Electives", type: "choose", credits: 3, any_graduate: ["CYBR"], receives_replaced_credits: true },
+  ] };
+  const legacy = { "HHPM 580": "Confirm with the advisor.", "HHPM 669": "Confirm the topic with the advisor." };
+  const ev = A.evaluate(program, A.parseTranscript("Fall 2025\n3 HHPM669|SEM Topics in Health Policy & Mgt  A"), { ...OPTS, legacy });
+  assert.deepEqual(ev.requirements[0].applied.map((c) => c.code), ["HHPM 669"]);
+  assert.deepEqual(ev.requirements[0].openSlots, [["HEPI 514", "HHPM 514"]]);
+  assert.deepEqual(ev.warnings.filter((w) => w.kind === "advisor").map((w) => w.course.code), ["HHPM 669"]);
+  const fresh = A.evaluate(program, [], { ...OPTS, legacy });
+  assert.equal(A.sectionFit(program, fresh, section({ code: "HHPM 669" })).fits, false);
+  assert.equal(A.sectionFit(program, fresh, section({ code: "HHPM 580" })).fits, false);
+  assert.equal(A.sectionFit(program, fresh, section({ code: "HSTA 601" })).label, "Core");
 });
 
 test("terms sort chronologically", () => {

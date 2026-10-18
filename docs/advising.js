@@ -9,11 +9,14 @@ export const GRADE_POINTS = {
 };
 // Count toward the degree only if balanced to a B (3.0) average.
 const BALANCE_GRADES = new Set(["B-", "C+", "C"]);
-// "Not applicable to graduate program requirements; do not earn graduate credit."
-const GRAD_NO_CREDIT = new Set(["C-", "D+", "D", "E", "F", "Z", "I", "V", "U", "W", "NC"]);
-const UNDERGRAD_NO_CREDIT = new Set(["E", "F", "Z", "I", "V", "U", "W", "NC"]);
-const IN_PROGRESS_GRADES = new Set(["ENRL", "IP", "NG", ""]);
-const GRADE_TOKEN = /^#?(?:[A-E][+-]?|F|S|U|W|I|Z|V|P|NC|ENRL|IP|NG|-)$/;
+// "Not applicable to graduate program requirements; do not earn graduate credit." N is an audit.
+const GRAD_NO_CREDIT = new Set(["C-", "D+", "D", "E", "F", "Z", "I", "V", "U", "W", "NC", "N"]);
+const UNDERGRAD_NO_CREDIT = new Set(["E", "F", "Z", "I", "V", "U", "W", "NC", "N"]);
+// R is thesis research in progress: the credits apply once the thesis is accepted.
+const IN_PROGRESS_GRADES = new Set(["ENRL", "IP", "NG", "R", ""]);
+// S, P and M (first course of a two-course field sequence) are passing grades.
+const PASSING = new Set(["S", "P", "M"]);
+const GRADE_TOKEN = /^#?(?:[A-E][+-]?|F|S|U|W|I|Z|V|P|M|R|N|NC|ENRL|IP|NG|-)$/;
 
 // Courses arranged with a faculty supervisor; the registrar lists one section per instructor.
 // This only changes how they are listed. Which requirement each fills comes from
@@ -52,7 +55,7 @@ export function gradeStatus(rawGrade, graduate) {
   const g = normalizeGrade(rawGrade);
   if (g === "-") return "component";
   if (IN_PROGRESS_GRADES.has(g)) return "in_progress";
-  if (g === "S" || g === "P") return "completed";
+  if (PASSING.has(g)) return "completed";
   if (graduate) {
     if (GRAD_NO_CREDIT.has(g)) return "no_credit";
     if (g in GRADE_POINTS) return "completed";
@@ -164,6 +167,32 @@ export function blockedCourses(courses, exclusions) {
   return blocked;
 }
 
+// Both courses of an excluded pair on one transcript (CYBR 553 and BCYB 644, or
+// CYBR 453 and CYBR 553): only the earlier one counts. Returns a map from the code
+// that does not count to the course that keeps the credit.
+export function overlappingCredit(courses, exclusions) {
+  const first = new Map();
+  for (const c of courses.filter(hasCredit)) {
+    const prev = first.get(c.code);
+    if (!prev || termKey(c.term) < termKey(prev.term)) first.set(c.code, c);
+  }
+  const dropped = new Map();
+  for (const [target, blockers] of Object.entries(exclusions || {})) {
+    const t = first.get(target);
+    if (!t || !t.graduate || dropped.has(target)) continue;
+    const by = blockers.map((b) => first.get(b))
+      .find((b) => b && !dropped.has(b.code) && termKey(b.term) <= termKey(t.term));
+    if (by) dropped.set(target, by);
+  }
+  return dropped;
+}
+
+// Cross-listed codes (CEHC 547 for CYBR 547) count as the course they alias.
+// The code as written stays in `listedAs` for display.
+export function applyAliases(courses, aliases) {
+  return courses.map((c) => (aliases?.[c.code] ? { ...c, code: aliases[c.code], listedAs: c.code } : c));
+}
+
 export function mergeExclusions(...sources) {
   const out = {};
   for (const src of sources) {
@@ -182,13 +211,17 @@ function accepts(req, code) {
 // A course the student is ruled out of is never counted as taken. In a required
 // slot it is replaced by one more elective; in a choose list it is only noted.
 // `unavailable` lists courses CEHC students cannot register for; they still count
-// if already on the transcript but are not offered as options.
-export function evaluate(program, courses, { exclusions = {}, repeatable = [], unavailable = [] } = {}) {
+// if already on the transcript but are not offered as options. `legacy` courses
+// (code -> note) work the same way and are also flagged for the advisor.
+export function evaluate(program, transcript, { exclusions = {}, repeatable = [], unavailable = [], aliases = {}, legacy = {} } = {}) {
   const rep = new Set(repeatable);
-  const closed = new Set(unavailable);
-  const attempts = countableAttempts(courses, repeatable);
+  const closed = new Set([...unavailable, ...Object.keys(legacy)]);
+  const courses = applyAliases(transcript, aliases);
+  const overlaps = overlappingCredit(courses, exclusions);
+  const counted = courses.filter((c) => !overlaps.has(c.code));
+  const attempts = countableAttempts(counted, repeatable);
   const pool = attempts.map((c) => ({ course: c, used: false }));
-  const blocked = blockedCourses(courses, exclusions);
+  const blocked = blockedCourses(counted, exclusions);
   const heldCodes = new Set(attempts.map((c) => c.code));
   const replacements = [];
   let replacedCredits = 0;
@@ -276,12 +309,26 @@ export function evaluate(program, courses, { exclusions = {}, repeatable = [], u
   const gpa = gpaCredits ? qp / gpaCredits : null;
 
   const warnings = [];
+  for (const c of courses.filter((x) => overlaps.has(x.code) && hasCredit(x))) {
+    const by = overlaps.get(c.code);
+    warnings.push({
+      kind: "overlap", course: c,
+      text: `${c.code} (${c.term || "term unknown"}) does not count: a student cannot receive credit for both ` +
+        `${c.code} and ${by.code} (${by.term || "earlier"}). Check with the advisor.`,
+    });
+  }
+  for (const r of requirements) {
+    for (const c of r.applied.filter((x) => legacy[x.code])) {
+      warnings.push({ kind: "advisor", course: c, text: `${c.code} (${c.term || "term unknown"}): ${legacy[c.code]}` });
+    }
+  }
   for (const c of courses) {
-    if (c.graduate && c.status === "no_credit" && !heldCodes.has(c.code)) {
+    if (c.graduate && c.status === "no_credit" && !heldCodes.has(c.code) && !overlaps.has(c.code)) {
       warnings.push({
         kind: "no_credit", course: c,
         text: `${c.code} (${c.term || "term unknown"}): a grade of ${c.grade} does not earn graduate credit. ` +
-          "The course must be retaken with department approval or replaced.",
+          (c.grade === "N" ? "An audited course cannot be repeated for graduate credit, so it must be replaced."
+            : "The course must be retaken with department approval or replaced."),
       });
     }
   }
@@ -310,7 +357,7 @@ export function evaluate(program, courses, { exclusions = {}, repeatable = [], u
   }));
   const sum = (key) => requirements.reduce((s, r) => s + r[key], 0);
   return {
-    requirements, attempts, blocked, warnings, unapplied, gpa, gpaCredits,
+    courses, requirements, attempts, blocked, overlaps, warnings, unapplied, gpa, gpaCredits,
     totals: { done: sum("done"), inProgress: sum("inProgress"), remaining: sum("remaining") },
     heldCodes, repeatable: rep,
   };

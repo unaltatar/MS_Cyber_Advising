@@ -46,7 +46,7 @@ def cmd_build(args):
     total = sum(len(t["sections"]) for t in schedule["terms"])
     print(f"\nwrote {args.out}: {len(schedule['terms'])} terms, {total} sections, "
           f"{len(schedule['exclusions_found'])} exclusion rules from descriptions, "
-          f"never open to CEHC students: {', '.join(restricted) or 'none'}")
+          f"no section open to CEHC students in any listed term: {', '.join(restricted) or 'none'}")
     return 0
 
 

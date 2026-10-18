@@ -107,6 +107,48 @@ class BuildTests(unittest.TestCase):
         self.assertTrue(build.is_hidden({"prerequisite": "graduate business students only"}, phrases))
         self.assertFalse(build.is_hidden({"prerequisite": ""}, phrases))
         self.assertFalse(build.is_hidden({"prerequisite": "Graduate standing."}, phrases))
+        # The note can sit outside the prerequisite sentence (BFOR 516, BCYB 660).
+        self.assertTrue(build.is_hidden({
+            "prerequisite": "Students taking this course should have prior knowledge of statistics.",
+            "description": "Covers analytics. Recommended Prerequisites: Students taking this course should have "
+                           "prior knowledge of statistics. Prerequisites: Graduate Business Students Only.",
+        }, phrases))
+
+    def test_descriptions_are_not_published(self):
+        terms = [{"id": "0007", "label": "Spring 2027", "sections": [
+            {"code": "CYBR 503", "excluded_by": [], "prerequisite": "", "description": "Long text."}]}]
+        with tempfile.TemporaryDirectory() as d:
+            build.write({"programs": []}, terms, [], d)
+            published = (pathlib.Path(d) / "schedule.json").read_text(encoding="utf-8")
+        self.assertNotIn("description", published)
+
+    def test_repo_programs_follow_the_2026_27_bulletin(self):
+        cfg = build.load_programs(pathlib.Path(__file__).parent.parent / "programs.toml")
+        health = next(p for p in cfg["programs"] if p["id"] == "health")
+        core = next(r for r in health["requirements"] if r["id"] == "core")
+        self.assertEqual(core["slots"], [["CYBR 503", "BFOR 525"], ["CYBR 553", "BCYB 644"],
+                                         ["HEPI 514", "HHPM 514", "HHPM 580"], ["HSTA 601", "HHPM 669"]])
+        for p in cfg["programs"]:
+            tools = next(r for r in p["requirements"] if r["label"] == "Tools")
+            self.assertTrue({"CYBR 540", "CYBR 555"} <= set(tools["courses"]), p["id"])
+        # Legacy courses still count but are never fetched or recommended.
+        codes, _ = build.referenced(cfg)
+        self.assertIn("HEPI 514", codes)
+        self.assertFalse({"HHPM 580", "HHPM 669"} & codes)
+
+    def test_paired_courses_block_each_other(self):
+        ex = build.load_programs(pathlib.Path(__file__).parent.parent / "programs.toml")["exclusions"]
+        for a, b in [("CYBR 503", "BFOR 525"), ("CYBR 553", "BCYB 644"), ("CYBR 554", "BCYB 645"),
+                     ("CYBR 551", "CYBR 552"), ("CYBR 540", "BFOR 615")]:
+            self.assertIn(b, ex[a])
+            self.assertIn(a, ex[b])
+
+    def test_aliases_are_cross_listings_only(self):
+        aliases = build.load_programs(pathlib.Path(__file__).parent.parent / "programs.toml")["aliases"]
+        self.assertEqual(aliases["CEHC 547"], "CYBR 547")
+        # Same number, different course.
+        self.assertFalse({"CEHC 553", "CEHC 554", "CEHC 555"} & set(aliases))
+        self.assertTrue(all(t.startswith("CYBR ") for t in aliases.values()))
 
     def test_repo_programs_file_is_valid(self):
         cfg = build.load_programs(pathlib.Path(__file__).parent.parent / "programs.toml")

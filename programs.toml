@@ -28,25 +28,60 @@ label_order = ["Core", "Optional Core", "Tools", "Elective", "Thesis or Internsh
 "CYBR 578" = "Internship with no credit minimum, open at any point in the program. Counts only as an elective, not toward the thesis or internship requirement."
 "CYBR 627" = "Counts only as an elective, not toward the thesis or internship requirement."
 
+# Courses from an earlier bulletin that still count if they are already on the
+# transcript. The page never recommends them, and flags them for the advisor
+# with this note. (Health core under the 2025-26 bulletin, confirmed October 2026.)
+[settings.legacy_courses]
+"HHPM 580" = "Health core under the 2025-26 bulletin, replaced by HEPI 514. Confirm with the advisor that it still counts for this student."
+"HHPM 669" = "Health core under the 2025-26 bulletin, replaced by HSTA 601, and only with the Health Analytics topic. Confirm the topic and the credit with the advisor."
+
+# Cross-listed codes for the same course (same title in the 2026-27 bulletin).
+# A transcript line with the code on the left counts as the course on the right.
+# Same number does not mean same course: CEHC 553, 554 and 555 are different courses.
+[aliases]
+"CEHC 545" = "CYBR 545"
+"RPAD 545" = "CYBR 545"
+"CEHC 547" = "CYBR 547"
+"CEHC 549" = "CYBR 549"
+"RPAD 549" = "CYBR 549"
+"CEHC 550" = "CYBR 550"
+"CEHC 569" = "CYBR 569"
+"RPAD 569" = "CYBR 569"
+"CINF 503" = "CYBR 503"
+"CINF 552" = "CYBR 552"
+"CINF 553" = "CYBR 553"
+"CINF 554" = "CYBR 554"
+"CINF 555" = "CYBR 555"
+
 # Graduate courses that cannot be taken once the student has credit for one of
 # the listed courses (usually the 400-level undergraduate version). Seeded from
-# the October 2026 course descriptions and the program sheets. The build adds
-# any new rule it finds in current course descriptions.
+# the 2026-27 course descriptions and the program sheets. The build adds any new
+# rule it finds in current course descriptions.
 #
 # Rule applied on the page: a ruled-out course is never counted as taken. If it
 # fills a required slot, the page notes that the student cannot take it and adds
 # one more elective (3 credits) instead. In a "choose" list, the ruled-out course
-# is noted and the student picks another course from the list.
+# is noted and the student picks another course from the list. If the transcript
+# has both courses, only the earlier one counts and the page flags the other.
+#
+# Pairs that block each other are listed both ways: the core alternatives
+# (503/BFOR 525, 553/BCYB 644, 554/BCYB 645), CYBR 551/552 and CYBR 540/BFOR 615
+# (confirmed October 2026).
 [exclusions]
-"CYBR 503" = ["CYBR 403"]
+"CYBR 503" = ["CYBR 403", "BFOR 525"]
+"BFOR 525" = ["CYBR 503"]
 "CYBR 536" = ["CYBR 436"]
+"CYBR 540" = ["CYBR 440", "BFOR 615"]
 "CYBR 545" = ["CYBR 445", "CEHC 445"]
 "CYBR 547" = ["CYBR 447"]
 "CYBR 549" = ["CYBR 449", "CEHC 449", "RPAD 449"]
 "CYBR 550" = ["CYBR 450"]
+"CYBR 551" = ["CYBR 552"]
 "CYBR 552" = ["CYBR 452", "CYBR 551"]
-"CYBR 553" = ["CYBR 453"]
-"CYBR 554" = ["CYBR 454"]
+"CYBR 553" = ["CYBR 453", "BCYB 644"]
+"BCYB 644" = ["CYBR 553"]
+"CYBR 554" = ["CYBR 454", "BCYB 645"]
+"BCYB 645" = ["CYBR 554"]
 "CYBR 555" = ["CYBR 455"]
 "CYBR 569" = ["CYBR 469", "CEHC 469", "RPAD 469"]
 "CYBR 571" = ["CYBR 471"]
@@ -57,7 +92,7 @@ label_order = ["Core", "Optional Core", "Tools", "Elective", "Thesis or Internsh
 id = "risk"
 name = "Cyber Risk Management & Compliance"
 degree = "MS in Cybersecurity and Risk"
-source = "CEHC program map, Fall 2023 (5-13-2023)"
+source = "Graduate Bulletin 2026-27"
 total_credits = 36
 # Reserved-seat groups in the Schedule of Classes that this program's students belong to.
 seat_groups = ["DFC-MS-RISKPCC students", "Cyber Risk Mgmt & Cmpl MS conc"]
@@ -89,8 +124,8 @@ seat_groups = ["DFC-MS-RISKPCC students", "Cyber Risk Mgmt & Cmpl MS conc"]
   name = "Cybersecurity tools course"
   type = "choose"
   credits = 3
-  # CYBR 555 was moved into this category by a program change (confirmed October 2026).
-  courses = ["CINF 523", "CYBR 555", "BFOR 615", "BFOR 642", "BFOR 643"]
+  # CYBR 540 and CYBR 555 count here by a program change (confirmed October 2026).
+  courses = ["CINF 523", "CYBR 540", "CYBR 555", "BFOR 615", "BFOR 642", "BFOR 643"]
   note = "CINF 523 is taken as three 1-credit modules, as advised."
 
   [[programs.requirements]]
@@ -110,7 +145,7 @@ seat_groups = ["DFC-MS-RISKPCC students", "Cyber Risk Mgmt & Cmpl MS conc"]
   type = "choose"
   credits = 9
   any_graduate = ["CYBR"]
-  courses = ["BCYB 644", "BCYB 602", "BFOR 650"]
+  courses = ["BCYB 602", "BFOR 650"]
   receives_replaced_credits = true
   note = "Any other CYBR graduate course, including CYBR 578 and CYBR 627. CYBR 678 or CYBR 699 can count here with advisement."
 
@@ -119,7 +154,7 @@ seat_groups = ["DFC-MS-RISKPCC students", "Cyber Risk Mgmt & Cmpl MS conc"]
 id = "health"
 name = "Cybersecurity & Privacy of Health Information"
 degree = "MS in Cybersecurity and Risk"
-source = "CEHC advisement worksheet (5-1-2023)"
+source = "Graduate Bulletin 2026-27"
 total_credits = 36
 seat_groups = ["DFC-MS-HLTHSECPVC students", "Cyber Privacy Hlth Inf MS conc"]
 
@@ -129,7 +164,13 @@ seat_groups = ["DFC-MS-HLTHSECPVC students", "Cyber Privacy Hlth Inf MS conc"]
   name = "Required courses"
   type = "all"
   credits = 12
-  slots = [["CYBR 503"], ["CYBR 553"], ["HHPM 580"], ["HHPM 669"]]
+  # HHPM 580 and HHPM 669 are the 2025-26 courses; see settings.legacy_courses.
+  slots = [
+    ["CYBR 503", "BFOR 525"],
+    ["CYBR 553", "BCYB 644"],
+    ["HEPI 514", "HHPM 514", "HHPM 580"],
+    ["HSTA 601", "HHPM 669"],
+  ]
 
   [[programs.requirements]]
   id = "optional-core"
@@ -145,8 +186,8 @@ seat_groups = ["DFC-MS-HLTHSECPVC students", "Cyber Privacy Hlth Inf MS conc"]
   name = "Cybersecurity tools course"
   type = "choose"
   credits = 3
-  # CYBR 555 was moved into this category by a program change (confirmed October 2026).
-  courses = ["CINF 523", "CYBR 555", "BFOR 615", "BFOR 642", "BFOR 643"]
+  # CYBR 540 and CYBR 555 count here by a program change (confirmed October 2026).
+  courses = ["CINF 523", "CYBR 540", "CYBR 555", "BFOR 615", "BFOR 642", "BFOR 643"]
   note = "CINF 523 is taken as three 1-credit modules, as advised."
 
   [[programs.requirements]]
@@ -166,6 +207,6 @@ seat_groups = ["DFC-MS-HLTHSECPVC students", "Cyber Privacy Hlth Inf MS conc"]
   type = "choose"
   credits = 9
   any_graduate = ["CYBR"]
-  courses = []
+  courses = ["BCYB 645"]
   receives_replaced_credits = true
-  note = "Any CYBR graduate course, for example CYBR 540, 550, 554, 578 or 627."
+  note = "Any CYBR graduate course, for example CYBR 550, 554, 569, 578 or 627. BCYB 645 counts in place of CYBR 554."

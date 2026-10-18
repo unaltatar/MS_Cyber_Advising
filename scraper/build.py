@@ -56,10 +56,17 @@ def load_programs(path):
             _check_code(b, f"exclusions[{code}]")
     if not all(isinstance(p, str) and p.strip() for p in settings.get("hide_sections_noting", [])):
         raise ConfigError("settings.hide_sections_noting must be a list of non-empty strings")
-    for code, note in settings.get("course_notes", {}).items():
-        _check_code(code, "settings.course_notes")
-        if not isinstance(note, str) or not note.strip():
-            raise ConfigError(f"settings.course_notes[{code}] must be a non-empty string")
+    for table in ("course_notes", "legacy_courses"):
+        for code, note in settings.get(table, {}).items():
+            _check_code(code, f"settings.{table}")
+            if not isinstance(note, str) or not note.strip():
+                raise ConfigError(f"settings.{table}[{code}] must be a non-empty string")
+    aliases = cfg.get("aliases", {})
+    for code, target in aliases.items():
+        _check_code(code, "aliases")
+        _check_code(target, f"aliases[{code}]")
+        if target in aliases or code == target:
+            raise ConfigError(f"aliases[{code}]: {target!r} must be a course code, not another alias")
 
     programs = cfg.get("programs", [])
     if not programs:
@@ -94,6 +101,10 @@ def load_programs(path):
             total += r["credits"]
         if total != p["total_credits"]:
             raise ConfigError(f"{p['id']}: requirements add up to {total}, not {p['total_credits']}")
+        for r in p["requirements"]:
+            for code in [*r.get("courses", []), *(c for slot in r.get("slots", []) for c in slot)]:
+                if code in aliases:
+                    raise ConfigError(f"{p['id']}.{r['id']}: use {aliases[code]!r}, not its alias {code!r}")
         if sum(bool(r.get("receives_replaced_credits")) for r in p["requirements"]) != 1:
             raise ConfigError(f"{p['id']}: exactly one requirement must set receives_replaced_credits")
         order = settings.get("label_order")
@@ -106,13 +117,20 @@ def load_programs(path):
 
 
 def is_hidden(section, phrases):
-    """True if the section's prerequisite note contains one of the configured phrases."""
-    note = section["prerequisite"].lower()
+    """True if the section's description or prerequisite contains one of the configured phrases.
+
+    The whole description is checked: some put the note after a "Recommended
+    Prerequisites" line or at the very end, outside the prerequisite sentence.
+    """
+    note = f"{section.get('description', '')} {section['prerequisite']}".lower()
     return any(p.lower() in note for p in phrases)
 
 
 def referenced(cfg):
-    """Return (course codes named anywhere, subjects whose every graduate course matters)."""
+    """Return (course codes named anywhere, subjects whose every graduate course matters).
+
+    Legacy courses count only if already taken, so their sections are never kept.
+    """
     codes, any_subjects = set(), set()
     for p in cfg["programs"]:
         for r in p["requirements"]:
@@ -120,18 +138,19 @@ def referenced(cfg):
             for slot in r.get("slots", []):
                 codes.update(slot)
             any_subjects.update(r.get("any_graduate", []))
-    return codes, any_subjects
+    return codes - set(cfg.get("settings", {}).get("legacy_courses", {})), any_subjects
 
 
 def fetch_all(cfg, log=print):
     """Return (terms, restricted_codes).
 
-    restricted_codes lists courses whose every fetched section is hidden, so the
-    page can leave them out of "choose from" lists too.
+    restricted_codes lists program courses with no section open to CEHC students
+    in any listed term (every section hidden, or none scheduled), so the page can
+    leave them out of "choose from" lists. They still count if already taken.
     """
     codes, any_subjects = referenced(cfg)
     phrases = cfg.get("settings", {}).get("hide_sections_noting", [])
-    hidden_codes, visible_codes = set(), set()
+    visible_codes = set()
     subjects = sorted(any_subjects | {c.split()[0] for c in codes})
     fields, terms, info = soc.load_form()
     log(info)
@@ -152,13 +171,12 @@ def fetch_all(cfg, log=print):
                 )
             relevant = [s for s in found if s["code"] in codes or s["subject"] in any_subjects]
             kept = [s for s in relevant if not is_hidden(s, phrases)]
-            hidden_codes.update(s["code"] for s in relevant if is_hidden(s, phrases))
             visible_codes.update(s["code"] for s in kept)
             log(f"  {label:12} {subject}: {len(found):3d} graduate sections, {len(kept):3d} kept"
                 f"{f', {len(relevant) - len(kept)} hidden' if len(relevant) > len(kept) else ''}")
             sections.extend(kept)
         out_terms.append({"id": term_id, "label": label, "sections": sections})
-    return out_terms, sorted(hidden_codes - visible_codes)
+    return out_terms, sorted(codes - visible_codes)
 
 
 def write(cfg, terms, restricted, out_dir):
@@ -167,6 +185,7 @@ def write(cfg, terms, restricted, out_dir):
     found = {}
     for t in terms:
         for s in t["sections"]:
+            s.pop("description", None)
             if s["excluded_by"]:
                 found.setdefault(s["code"], set()).update(s["excluded_by"])
     schedule = {
