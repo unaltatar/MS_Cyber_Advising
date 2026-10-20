@@ -81,6 +81,8 @@ below (confirmed October 2026).
   the page reminds the student to check that a new module is a different topic.
 - Only CYBR 678 and CYBR 699 fill the thesis or internship requirement. CYBR 578,
   an internship with no credit minimum, and CYBR 627 count only as electives.
+  CYBR 678 counts once, so a student takes at most two internships: CYBR 678 and
+  CYBR 578. CYBR 699 can also count as an elective with advisement.
 
 ## Running locally
 

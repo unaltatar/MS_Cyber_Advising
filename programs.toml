@@ -12,8 +12,10 @@
 #            the `any_graduate` subjects).
 
 [settings]
-# Courses that count every time they are taken (different modules or topics).
-repeatable = ["CINF 523", "CYBR 699", "CYBR 678", "HHPM 669"]
+# Courses that count every time they are taken (different modules or topics,
+# or thesis credits spread over terms). CYBR 678 is not repeatable: it counts
+# once, so a student takes at most two internships, CYBR 678 and CYBR 578.
+repeatable = ["CINF 523", "CYBR 699", "HHPM 669"]
 
 # Sections whose course description contains one of these notes are not shown,
 # because CEHC students cannot register for them.
@@ -27,6 +29,7 @@ label_order = ["Core", "Optional Core", "Tools", "Elective", "Thesis or Internsh
 [settings.course_notes]
 "CYBR 578" = "Internship with no credit minimum, open at any point in the program. Counts only as an elective, not toward the thesis or internship requirement."
 "CYBR 627" = "Counts only as an elective, not toward the thesis or internship requirement."
+"CYBR 678" = "Counts once, toward the thesis or internship requirement. With CYBR 578 as an elective, a student takes at most two internships."
 
 # Courses from an earlier bulletin that still count if they are already on the
 # transcript. The page never recommends them, and flags them for the advisor
@@ -147,7 +150,7 @@ seat_groups = ["DFC-MS-RISKPCC students", "Cyber Risk Mgmt & Cmpl MS conc"]
   any_graduate = ["CYBR"]
   courses = ["BCYB 602", "BFOR 650"]
   receives_replaced_credits = true
-  note = "Any other CYBR graduate course, including CYBR 578 and CYBR 627. CYBR 678 or CYBR 699 can count here with advisement."
+  note = "Any other CYBR graduate course, including CYBR 578 and CYBR 627. CYBR 699 can also count here with advisement. CYBR 678 counts only toward Thesis or Internship."
 
 
 [[programs]]

@@ -44,7 +44,7 @@ const RISK = {
 };
 const OPTS = {
   exclusions: { "CYBR 553": ["CYBR 453"], "BFOR 615": ["BFOR 415", "CYBR 540"] },
-  repeatable: ["CINF 523", "CYBR 699", "CYBR 678"],
+  repeatable: ["CINF 523", "CYBR 699"],
 };
 
 const section = (over) => ({
@@ -299,6 +299,23 @@ test("legacy Health core courses count but are flagged for the advisor and never
   assert.equal(A.sectionFit(program, fresh, section({ code: "HHPM 669" })).fits, false);
   assert.equal(A.sectionFit(program, fresh, section({ code: "HHPM 580" })).fits, false);
   assert.equal(A.sectionFit(program, fresh, section({ code: "HSTA 601" })).label, "Core");
+});
+
+test("internships: CYBR 678 counts once, CYBR 578 only as an elective, at most one of each", () => {
+  const fit = (history, code) => {
+    const ev = A.evaluate(RISK, A.parseTranscript(history), OPTS);
+    const f = A.sectionFit(RISK, ev, section({ code, delivery: "arranged" }));
+    return f.fits ? f.label : f.reason;
+  };
+  const only678 = "Spring 2026\n3 CYBR678|PFC Capstone Internship in Cyber  S";
+  const both = `${only678}\nSummer 2025\n3 CYBR578|PFC Internship in Cybersecurity  S`;
+  const only578 = "Summer 2025\n3 CYBR578|PFC Internship in Cybersecurity  S";
+  // After CYBR 678 the capstone is met: 678 is not offered again, 578 still can be an elective.
+  assert.deepEqual(["CYBR 678", "CYBR 578", "CYBR 699"].map((c) => fit(only678, c)), ["taken", "Elective", "Elective"]);
+  // After both internships, neither is offered.
+  assert.deepEqual(["CYBR 678", "CYBR 578"].map((c) => fit(both, c)), ["taken", "taken"]);
+  // CYBR 578 alone does not fill the capstone, so CYBR 678 is still needed there.
+  assert.deepEqual(["CYBR 678", "CYBR 699"].map((c) => fit(only578, c)), ["Internship", "Thesis"]);
 });
 
 test("terms sort chronologically", () => {

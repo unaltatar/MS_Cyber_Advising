@@ -157,6 +157,9 @@ class BuildTests(unittest.TestCase):
     def test_only_678_and_699_fill_thesis_or_internship(self):
         # Advising rule: CYBR 578 (internship, no credit minimum) and CYBR 627 are electives only.
         cfg = build.load_programs(pathlib.Path(__file__).parent.parent / "programs.toml")
+        # CYBR 678 counts once (at most two internships: 678 and 578); thesis credits can repeat.
+        self.assertNotIn("CYBR 678", cfg["settings"]["repeatable"])
+        self.assertIn("CYBR 699", cfg["settings"]["repeatable"])
         for p in cfg["programs"]:
             capstone = next(r for r in p["requirements"] if r["label"] == "Thesis or Internship")
             self.assertEqual(sorted(capstone["courses"]), ["CYBR 678", "CYBR 699"], p["id"])

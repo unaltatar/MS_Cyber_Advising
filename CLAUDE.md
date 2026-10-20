@@ -65,6 +65,7 @@ Requirements follow the 2026-27 Graduate Bulletin (cybersecurity-risk-ms.php); t
 - CYBR 540 and CYBR 555 are Tools courses.
 - Only CYBR 678 and CYBR 699 fill Thesis or Internship.
   - CYBR 578 (an internship with no credit minimum) and CYBR 627 count only as electives.
+  - CYBR 678 counts once and is not repeatable, so a student takes at most two internships: 678 (capstone) and 578 (elective). CYBR 699 (1 to 6 credits) is repeatable and may be suggested as an elective after the capstone.
   - Per-course notes live in `settings.course_notes`.
   - Supervised courses are shown as one row per course. That changes only the display, never which requirement a course fills.
 - CINF 523 is three 1-credit modules and is repeatable. If the student already has a module, the page reminds them to check that the new topic is different.
