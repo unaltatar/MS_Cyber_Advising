@@ -22,7 +22,9 @@ blocks it from sending data to any other site. Tests use a synthetic history.
 ## How it works
 
 The browser cannot read albany.edu directly, so a GitHub Actions workflow
-(`.github/workflows/pages.yml`) runs every hour. It queries the
+(`.github/workflows/pages.yml`) is scheduled four times an hour. GitHub skips
+many scheduled runs when it is busy, so in practice the data refreshes about once
+an hour, sometimes less often. Each run queries the
 [Schedule of Classes](https://www.albany.edu/registrar/schedule-classes) for
 every listed term, keeps the sections the programs use, validates them, and
 publishes the site with fresh data. If validation fails, nothing is published

@@ -4,7 +4,9 @@ name: Update data and publish site
 
 on:
   schedule:
-    - cron: "23 * * * *" # every hour at :23; GitHub may start scheduled runs late
+    # GitHub starts scheduled runs late and skips many under load (October 2026: only 5 to 7
+    # of 24 hourly runs a day). Four tries an hour give roughly one real refresh an hour.
+    - cron: "8,23,38,53 * * * *"
   workflow_dispatch:
     inputs:
       keepalive_after_days:
@@ -58,8 +60,8 @@ jobs:
         uses: actions/deploy-pages@v5
 
   # GitHub turns off scheduled runs in a public repo after 60 days without repository
-  # activity, and the hourly runs above commit nothing. When the newest commit is over
-  # 30 days old, record the date in .github/keepalive so the hourly refresh keeps running.
+  # activity, and the scheduled runs above commit nothing. When the newest commit is over
+  # 30 days old, record the date in .github/keepalive so the scheduled refresh keeps running.
   # This job does not depend on the build, so it still runs while the registrar is down.
   keepalive:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
