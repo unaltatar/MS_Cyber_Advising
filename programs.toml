@@ -212,4 +212,4 @@ seat_groups = ["DFC-MS-HLTHSECPVC students", "Cyber Privacy Hlth Inf MS conc"]
   any_graduate = ["CYBR"]
   courses = ["BCYB 645"]
   receives_replaced_credits = true
-  note = "Any CYBR graduate course, for example CYBR 550, 554, 569, 578 or 627. BCYB 645 counts in place of CYBR 554."
+  note = "Any CYBR graduate course, for example CYBR 550, 554, 569, 578 or 627. BCYB 645 counts in place of CYBR 554. CYBR 699 can also count here with advisement. CYBR 678 counts only toward Thesis or Internship."
