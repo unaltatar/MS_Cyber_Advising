@@ -4,8 +4,8 @@ name: Update data and publish site
 
 on:
   schedule:
-    # GitHub starts scheduled runs late and skips many under load (October 2026: only 5 to 7
-    # of 24 hourly runs a day). Four tries an hour give roughly one real refresh an hour.
+    # GitHub caps scheduled runs for this repo at about one every 4 hours: 5 to 7 a day in
+    # October 2026, with one slot an hour and with four. A refresh every 4 hours is accepted.
     - cron: "8,23,38,53 * * * *"
   workflow_dispatch:
     inputs:
