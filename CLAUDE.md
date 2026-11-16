@@ -37,7 +37,7 @@ Always name the Node test file. The CI runner's Node treats `node --test tests/`
 - A real transcript shared for a format check goes only in the session scratchpad and is deleted after use. Never in the repo, memory or screenshots.
 - The page processes pasted history only in the browser. Keep it that way:
   - The CSP allows `connect-src 'self'` only. No third-party scripts and no analytics.
-  - No localStorage.
+  - No localStorage. Sections checked for the copy list live in memory only, and the Clear button empties them so one student's list never carries over to the next.
   - No innerHTML: build the DOM with `h()`.
   - The textarea keeps spellcheck and Grammarly off.
 - No LLM calls and no API keys, because the site is static and public.

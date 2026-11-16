@@ -419,6 +419,30 @@ export function matchesPreferences(section, prefs) {
   return true;
 }
 
+// Plain class format for the copied course list: online (live or asynchronous), in person, blended or arranged.
+export function formatLabel(section) {
+  const d = section.delivery;
+  if (d === "arranged" || SUPERVISED.has(section.code)) return "Arranged with the supervisor";
+  if (d === "online") return section.meeting?.start ? "Online, live sessions" : "Online, asynchronous";
+  if (d === "blended") return "Blended";
+  if (d === "in_person") return "In person";
+  return section.delivery_method || "";
+}
+
+// One line per checked section, sorted by term and course, for an advisor to copy.
+// items: [{ term, code, title, classNumber, sectionCount, format }]; classNumber is null when
+// a supervised course has one section per supervisor and none is chosen yet.
+export function selectionLines(items) {
+  return [...items]
+    .sort((a, b) => termKey(a.term) - termKey(b.term) || a.code.localeCompare(b.code) ||
+      String(a.classNumber ?? "").localeCompare(String(b.classNumber ?? "")))
+    .map((x) => [
+      x.term, x.code, x.title,
+      x.classNumber ? `Class ${x.classNumber}` : `Class number from the supervisor's section (${x.sectionCount} sections)`,
+      x.format,
+    ].join(" | "));
+}
+
 const SEASON_ORDER = { Winter: 0, Spring: 1, Summer: 2, Fall: 3 };
 export function termKey(label) {
   const m = /(\w+)\s+(\d{4})/.exec(label || "");

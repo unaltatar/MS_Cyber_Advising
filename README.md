@@ -7,8 +7,10 @@ A student picks a concentration, a term and the class formats they can take,
 then pastes their course history, or checks "New student" if they have not taken
 any courses yet. The page shows which requirements are done,
 in progress or still needed, and which sections in the chosen term fill them,
-with times, instructors and the seats actually open to that student. It also
-shows the program-wide list of sections in the advising-sheet layout.
+with times, instructors and the seats actually open to that student. Sections
+can be checked to build a plain-text list (term, course, title, class number and
+format) to copy into an advising note or email. It also shows the program-wide
+list of sections in the advising-sheet layout.
 
 ## Privacy
 

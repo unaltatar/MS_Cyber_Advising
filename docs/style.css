@@ -201,6 +201,14 @@ table.sections { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
   text-align: left; font-weight: 600; padding: 8px 10px; vertical-align: bottom;
 }
 .sections td { padding: 7px 10px; border-top: 1px solid var(--line); vertical-align: top; }
+.sections td.pick { text-align: center; }
+.sections td.pick input { width: 1.1em; height: 1.1em; cursor: pointer; }
+
+/* List of checked sections to copy */
+.selection { margin-top: 14px; }
+.selection-box { margin-top: 10px; }
+.selection-text { white-space: pre; overflow-x: auto; }
+.selection .actions { align-items: center; }
 .sections tbody tr:nth-child(odd) { background: var(--row-alt); }
 .sections.compact td { padding: 4px 10px; }
 .sections tr.undergrad td { color: var(--muted); }

@@ -318,6 +318,27 @@ test("internships: CYBR 678 counts once, CYBR 578 only as an elective, at most o
   assert.deepEqual(["CYBR 678", "CYBR 699"].map((c) => fit(only578, c)), ["Internship", "Thesis"]);
 });
 
+test("selected courses list: one line per section, sorted by term then course, with a plain format", () => {
+  const lines = A.selectionLines([
+    { term: "Spring 2027", code: "CYBR 678", title: "Capstone Internship in Cyber", classNumber: null, sectionCount: 11, format: "Arranged with the supervisor" },
+    { term: "Fall 2026", code: "CYBR 553", title: "Information Security & Privacy", classNumber: 6129, format: "Online, asynchronous" },
+    { term: "Spring 2027", code: "CYBR 547", title: "Cybersecurity Risk and Policy", classNumber: 6528, format: "In person" },
+  ]);
+  assert.deepEqual(lines, [
+    "Fall 2026 | CYBR 553 | Information Security & Privacy | Class 6129 | Online, asynchronous",
+    "Spring 2027 | CYBR 547 | Cybersecurity Risk and Policy | Class 6528 | In person",
+    "Spring 2027 | CYBR 678 | Capstone Internship in Cyber | Class number from the supervisor's section (11 sections) | Arranged with the supervisor",
+  ]);
+  const live = { days: ["T"], start: "18:00", end: "20:50" };
+  assert.deepEqual([
+    A.formatLabel(section({ delivery: "online" })),
+    A.formatLabel(section({ delivery: "online", meeting: live })),
+    A.formatLabel(section({ delivery: "in_person", meeting: live })),
+    A.formatLabel(section({ delivery: "blended", meeting: live })),
+    A.formatLabel(section({ code: "CYBR 678", delivery: "online" })),
+  ], ["Online, asynchronous", "Online, live sessions", "In person", "Blended", "Arranged with the supervisor"]);
+});
+
 test("terms sort chronologically", () => {
   const labels = ["Summer 2026", "Spring 2027", "Fall 2026", "Winter 2027"];
   assert.deepEqual(labels.sort((a, b) => A.termKey(b) - A.termKey(a)), ["Spring 2027", "Winter 2027", "Fall 2026", "Summer 2026"]);

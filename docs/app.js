@@ -20,6 +20,10 @@ const STALE_HOURS = 24;
 let cfg = null;
 let schedule = null;
 let exclusions = {};
+// Sections checked in the recommendations table, kept in memory across re-renders and terms
+// until Clear. Key: term id plus class number, or plus course code for a grouped supervised row.
+const selected = new Map();
+let selectionOpen = false;
 
 // Build DOM without innerHTML so registrar text and pasted text are never parsed as HTML.
 function h(tag, props, ...children) {
@@ -192,8 +196,23 @@ function courseNote(code) {
   return note ? h("div", { class: "course-note" }, note) : null;
 }
 
-function sectionRow(program, ev, s, label) {
+function pickCell(key, item) {
+  return h("td", { class: "pick" }, h("input", {
+    type: "checkbox", checked: selected.has(key), "aria-label": `Select ${item.code} for the course list`,
+    onchange: (e) => {
+      if (e.target.checked) selected.set(key, item);
+      else selected.delete(key);
+      updateSelection();
+    },
+  }));
+}
+
+function sectionRow(program, ev, s, label, term) {
   return h("tr", null,
+    pickCell(`${term.id}:${s.class_number}`, {
+      term: term.label, code: s.code, title: s.topic ? `${s.title}: ${s.topic}` : s.title,
+      classNumber: s.class_number, sectionCount: 1, format: A.formatLabel(s),
+    }),
     h("td", null, h("span", { class: "req-label" }, label)),
     h("td", { class: "nowrap" }, h("strong", null, s.code)),
     h("td", null, s.title, s.topic ? h("div", { class: "topic" }, s.topic) : null, courseNote(s.code),
@@ -212,19 +231,23 @@ function sectionTable(rows) {
   return h("div", { class: "table-wrap" },
     h("table", { class: "sections" },
       h("thead", null, h("tr", null,
-        ["Requirement", "Course", "Title", "Session", "Cr", "Class #", "When", "Where", "Instructor", "Seats available"].map((t) => h("th", { scope: "col" }, t)))),
+        ["Select", "Requirement", "Course", "Title", "Session", "Cr", "Class #", "When", "Where", "Instructor", "Seats available"].map((t) => h("th", { scope: "col" }, t)))),
       h("tbody", null, rows)));
 }
 
 // Internships, practicum and thesis list one section per faculty supervisor, so each
 // course is one row. Which requirement it fills comes from programs.toml like any other.
-function supervisedRow(program, { s, label, sections }) {
+function supervisedRow(program, { s, label, sections }, term) {
   const people = [...new Set(sections.map((x) => x.meeting.instructor).filter(Boolean))];
   const seats = sections.map((x) => A.seatsFor(program, x).forYou ?? x.seats_remaining);
   const lo = Math.min(...seats);
   const hi = Math.max(...seats);
   const sessions = [...new Set(sections.map((x) => (SESSIONS[x.session] || [x.session])[0]))].join(", ");
   return h("tr", null,
+    pickCell(`${term.id}:${s.code}`, {
+      term: term.label, code: s.code, title: s.title,
+      classNumber: sections.length === 1 ? s.class_number : null, sectionCount: sections.length, format: A.formatLabel(s),
+    }),
     h("td", null, h("span", { class: "req-label" }, label)),
     h("td", { class: "nowrap" }, h("strong", null, s.code)),
     h("td", null, s.title, courseNote(s.code),
@@ -266,10 +289,63 @@ function recommendations(program, ev, term, prefs) {
       ? "The remaining requirements are covered by completed and in-progress courses."
       : `No matching sections in ${term.label}${hidden ? " with the chosen format and time limits" : ""}.`));
   } else {
-    out.push(sectionTable(entries.map((e) => (e.sections ? supervisedRow(program, e) : sectionRow(program, ev, e.s, e.label)))));
+    out.push(sectionTable(entries.map((e) => (e.sections ? supervisedRow(program, e, term) : sectionRow(program, ev, e.s, e.label, term)))));
   }
   if (hidden) out.push(h("p", { class: "hint" }, `${hidden} more matching section${hidden === 1 ? " is" : "s are"} hidden by the chosen format or time limits.`));
+  out.push(h("div", { id: "selection", class: "selection" }, selectionContent()));
   return h("section", { class: "panel" }, out);
+}
+
+// The list of checked sections: a button opens a read-only box with one line per section
+// (term, course, title, class number, format) and a Copy button. Nothing is stored or sent.
+function selectionContent() {
+  if (!selected.size) return h("p", { class: "hint" }, "Check the sections the student plans to take to build a list to copy.");
+  const toggle = h("button", {
+    type: "button", class: "btn", "aria-expanded": String(selectionOpen),
+    onclick: () => {
+      selectionOpen = !selectionOpen;
+      updateSelection();
+    },
+  }, selectionOpen ? "Hide selected courses" : `Show selected courses (${selected.size})`);
+  if (!selectionOpen) return toggle;
+  const lines = A.selectionLines([...selected.values()]);
+  const box = h("textarea", {
+    class: "selection-text", readonly: true, wrap: "off", rows: Math.min(lines.length + 1, 12), "aria-label": "Selected courses",
+    spellcheck: "false", autocomplete: "off", "data-gramm": "false", "data-gramm_editor": "false", "data-enable-grammarly": "false",
+  });
+  box.value = lines.join("\n");
+  const status = h("span", { class: "muted small", role: "status" });
+  return [toggle, h("div", { class: "selection-box" },
+    box,
+    h("div", { class: "actions" },
+      h("button", { type: "button", class: "btn btn-primary", onclick: () => copySelection(box, status) }, "Copy"),
+      h("button", {
+        type: "button", class: "btn",
+        onclick: () => {
+          selected.clear();
+          selectionOpen = false;
+          render();
+        },
+      }, "Clear selection"),
+      status),
+    h("p", { class: "hint" }, "Sections checked in other terms stay on the list. Clear selection, or Clear above, empties it."))];
+}
+
+function updateSelection() {
+  const area = $("#selection");
+  if (area) area.replaceChildren(...[selectionContent()].flat());
+}
+
+async function copySelection(box, status) {
+  try {
+    await navigator.clipboard.writeText(box.value);
+    status.textContent = "Copied.";
+  } catch {
+    // Clipboard access can be refused; leave the text selected so it can be copied by hand.
+    box.focus();
+    box.select();
+    status.textContent = "Press Ctrl+C (Cmd+C on a Mac) to copy the selected text.";
+  }
 }
 
 function summary(program, ev) {
@@ -516,6 +592,9 @@ async function init() {
     history.value = "";
     newStudent.checked = false;
     syncNewStudent();
+    // The next student starts with an empty course list.
+    selected.clear();
+    selectionOpen = false;
     refresh();
     history.focus();
   });
